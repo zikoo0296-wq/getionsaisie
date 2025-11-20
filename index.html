@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel vers WhatsApp</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: ltr;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-zone {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-zone:hover {
+            background: #e8ebff;
+            border-color: #764ba2;
+        }
+
+        .upload-zone.dragover {
+            background: #d0d7ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-top: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #whatsappMessage {
+            white-space: pre-wrap;
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #4caf50;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .success-message {
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 15px;
+            animation: slideIn 0.3s;
+            display: none;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .info-box h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+        }
+
+        .preview-table {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9ff;
+        }
+
+        .settings {
+            background: #fff8e1;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .settings label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .settings input, .settings select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .settings input:focus, .settings select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .message-card {
+            background: #f8f9ff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .message-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .message-content {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 2px solid #4caf50;
+            margin-bottom: 10px;
+        }
+
+        .message-actions-inline {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-small:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .message-list-item {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .message-list-item:hover {
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+
+        .message-list-item strong {
+            color: #667eea;
+        }
+
+        .success-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: slideInRight 0.3s;
+            z-index: 1000;
+            display: none;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 Excel vers WhatsApp</h1>
+            <p>Convertissez vos données Excel en message WhatsApp formaté</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Section Import -->
+            <div class="card">
+                <h2>📂 Importer le fichier Excel</h2>
+                
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">📄</div>
+                    <p style="font-size: 1.1em; color: #333; margin-bottom: 10px;">
+                        <strong>Glissez votre fichier Excel ici</strong>
+                    </p>
+                    <p style="color: #666;">ou cliquez pour sélectionner</p>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls">
+                </div>
+
+                <div class="info-box">
+                    <h3>📋 Structure attendue :</h3>
+                    <ul>
+                        <li><strong>Date</strong> : Date de la commande (optionnel)</li>
+                        <li><strong>Nom</strong> : Nom du client</li>
+                        <li><strong>Produit</strong> : Nom du produit</li>
+                        <li><strong>Prix</strong> : Prix unitaire</li>
+                        <li><strong>Qte</strong> : Quantité</li>
+                        <li><strong>Paiement</strong> : Statut (Payée/Crédit)</li>
+                        <li><strong>Type P</strong> : Type de paiement (Espèces/CIH Y)</li>
+                        <li><strong>Statut</strong> : Localisation</li>
+                    </ul>
+                </div>
+
+                <div class="settings" id="settingsPanel" style="display: none;">
+                    <h3 style="margin-bottom: 15px; color: #667eea;">⚙️ Paramètres du message</h3>
+                    
+                    <button class="btn" onclick="generateMessages()" style="width: 100%;">🔄 Générer les messages</button>
+                </div>
+
+                <div id="messagesListPanel" style="display: none; margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #667eea;">📋 Messages générés</h3>
+                    <div id="messagesList"></div>
+                    <button class="btn" onclick="downloadAllMessages()" style="width: 100%; margin-top: 15px;">📦 Télécharger tous les messages (ZIP)</button>
+                </div>
+
+                <div class="preview-table" id="previewTable" style="display: none;">
+                    <h3 style="margin: 20px 0 10px 0; color: #667eea;">👀 Aperçu des données</h3>
+                    <div id="tableContent"></div>
+                </div>
+            </div>
+
+            <!-- Section Message WhatsApp -->
+            <div class="card">
+                <h2>💬 Messages WhatsApp</h2>
+                
+                <div id="messagesContainer" style="display: none;">
+                    <div id="messagesDisplay"></div>
+                </div>
+
+                <div id="emptyState" style="min-height: 300px; display: flex; align-items: center; justify-content: center; color: #999;">
+                    <p>Importez un fichier Excel pour générer les messages...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="success-toast" id="successToast">
+        ✅ Message copié avec succès !
+    </div>
+
+    <script>
+        let excelData = null;
+        let generatedMessages = {};
+
+        // Gestion du drag & drop
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                excelData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                displayPreview();
+                document.getElementById('settingsPanel').style.display = 'block';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayPreview() {
+            if (!excelData || excelData.length === 0) return;
+
+            const preview = excelData.slice(0, 5);
+            let html = '<table><thead><tr>';
+            
+            const headers = Object.keys(preview[0]);
+            headers.forEach(header => {
+                html += `<th>${header}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            preview.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    html += `<td>${row[header] || ''}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+
+            document.getElementById('tableContent').innerHTML = html;
+            document.getElementById('previewTable').style.display = 'block';
+        }
+
+        function generateMessages() {
+            if (!excelData || excelData.length === 0) return;
+
+            // Fonction helper pour obtenir la valeur d'une colonne avec variations possibles
+            function getColumnValue(row, possibleNames) {
+                for (let name of possibleNames) {
+                    if (row.hasOwnProperty(name)) {
+                        return row[name];
+                    }
+                }
+                return null;
+            }
+
+            // Grouper par Client + Statut + Type P (mode de paiement)
+            const grouped = {};
+            excelData.forEach(row => {
+                const client = getColumnValue(row, ['Nom', 'Nom ', 'nom']) || 'Client inconnu';
+                let produit = getColumnValue(row, ['Produit', 'produit']);
+                const prix = getColumnValue(row, ['Prix', 'prix']);
+                const qte = getColumnValue(row, ['Qte', 'qte', 'Quantité', 'quantite']);
+                
+                // Ignorer les lignes vides (sans prix OU sans quantité)
+                // MAIS accepter les lignes même si le produit est vide
+                if ((!prix && prix !== 0) || (!qte && qte !== 0)) {
+                    return;
+                }
+                
+                // Si le produit est vide, mettre "Produit non spécifié"
+                if (!produit || produit.toString().trim() === '') {
+                    produit = 'Produit non spécifié';
+                }
+                
+                // Remplacer le produit dans la ligne pour l'utiliser plus tard
+                row['Produit'] = produit;
+                if (row['produit'] !== undefined) {
+                    row['produit'] = produit;
+                }
+                
+                let statut = getColumnValue(row, ['Statut', 'statut']);
+                if (!statut || statut.toString().trim() === '') {
+                    statut = 'Sans localisation';
+                }
+                
+                const paiement = getColumnValue(row, ['Paiement', 'paiement']);
+                let typeP = getColumnValue(row, ['Type P', 'TypeP', 'type_p']);
+                
+                // Gérer les cas où Paiement et Type P sont vides
+                if ((!paiement || paiement.toString().trim() === '') && 
+                    (!typeP || typeP.toString().trim() === '')) {
+                    typeP = 'Mode de paiement inconnu';
+                } else if (paiement === 'Crédit') {
+                    // Si paiement est "Crédit", utiliser "Crédit" comme type
+                    typeP = 'Crédit';
+                } else if (!typeP || typeP.toString().trim() === '') {
+                    // Si Type P est vide mais Paiement existe
+                    typeP = 'Espèce';
+                }
+                
+                // Créer une clé unique : client_statut_typeP
+                const key = `${client}_${statut}_${typeP}`;
+                
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        client: client,
+                        statut: statut,
+                        typeP: typeP,
+                        paiement: paiement,
+                        rows: []
+                    };
+                }
+                grouped[key].rows.push(row);
+            });
+
+            // Regrouper par client + statut (sans typeP) pour gérer les multiples modes de paiement
+            const finalGrouped = {};
+            Object.values(grouped).forEach(group => {
+                const keyClientStatut = `${group.client}_${group.statut}`;
+                
+                if (!finalGrouped[keyClientStatut]) {
+                    finalGrouped[keyClientStatut] = {
+                        client: group.client,
+                        statut: group.statut,
+                        paymentGroups: []
+                    };
+                }
+                
+                finalGrouped[keyClientStatut].paymentGroups.push({
+                    typeP: group.typeP,
+                    paiement: group.paiement,
+                    rows: group.rows
+                });
+            });
+
+            // Générer un message pour chaque groupe client + statut
+            generatedMessages = {};
+            Object.keys(finalGrouped).forEach(key => {
+                const group = finalGrouped[key];
+                const message = createMessageWithPayments(group);
+                generatedMessages[key] = {
+                    client: group.client,
+                    statut: group.statut,
+                    message: message
+                };
+            });
+
+            displayMessages();
+            displayMessagesList();
+        }
+
+        function createMessage(group) {
+            // Fonction helper pour obtenir la valeur d'une colonne
+            function getColumnValue(row, possibleNames) {
+                for (let name of possibleNames) {
+                    if (row.hasOwnProperty(name)) {
+                        return row[name];
+                    }
+                }
+                return null;
+            }
+
+            const firstRow = group.rows[0];
+            const typeP = getColumnValue(firstRow, ['Type P', 'TypeP', 'type_p']) || 'Espèce';
+            const paiement = getColumnValue(firstRow, ['Paiement', 'paiement']);
+            
+            // Grouper les produits identiques avec le même prix
+            const productGroups = {};
+            
+            group.rows.forEach(row => {
+                let produit = getColumnValue(row, ['Produit', 'produit']) || 'Produit non spécifié';
+                // Nettoyer les espaces
+                if (produit.toString().trim() === '') {
+                    produit = 'Produit non spécifié';
+                }
+                const prix = parseFloat(getColumnValue(row, ['Prix', 'prix'])) || 0;
+                const qte = parseFloat(getColumnValue(row, ['Qte', 'qte', 'Quantité', 'quantite'])) || 0;
+                
+                // Créer une clé unique : produit + prix
+                const key = `${produit}|||${prix}`;
+                
+                if (!productGroups[key]) {
+                    productGroups[key] = {
+                        produit: produit,
+                        prix: prix,
+                        qte: 0
+                    };
+                }
+                
+                // Sommer les quantités
+                productGroups[key].qte += qte;
+            });
+            
+            let message = '';
+            
+            // Si c'est "Payée", afficher "Payé [Type]"
+            if (paiement === 'Payée' && typeP) {
+                message += `Payé ${typeP}\n`;
+            } else if (paiement === 'Crédit') {
+                message += `Crédit\n`;
+            } else {
+                message += `Payé espèce\n`;
+            }
+            
+            message += `👉 ${group.statut}\n\n`;
+
+            let total = 0;
+            
+            // Parcourir les produits groupés
+            Object.values(productGroups).forEach(item => {
+                const montant = Math.round(item.qte * item.prix * 100) / 100; // Arrondir à 2 décimales
+                total += montant;
+                
+                // Formater la quantité (enlever les décimales si c'est un entier)
+                const qteFormatted = item.qte % 1 === 0 ? Math.round(item.qte) : item.qte;
+                const prixFormatted = item.prix % 1 === 0 ? Math.round(item.prix) : item.prix;
+                const montantFormatted = montant % 1 === 0 ? Math.round(montant) : montant;
+                
+                message += `${qteFormatted} ${item.produit} × ${prixFormatted} = ${montantFormatted}Dh\n`;
+            });
+
+            // Arrondir le total
+            total = Math.round(total * 100) / 100;
+            const totalFormatted = total % 1 === 0 ? Math.round(total) : total;
+
+            message += `\nTotal : ${totalFormatted}Dh\n`;
+            
+            if (paiement === 'Payée' && typeP) {
+                message += `Payé ${typeP}\n`;
+            } else if (paiement === 'Crédit') {
+                message += `Crédit\n`;
+            } else {
+                message += `Payé Espèce\n`;
+            }
+            
+            message += `Client : ${group.client}\n`;
+            message += `👉 ${group.statut}`;
+
+            return message;
+        }
+
+        function createMessageWithPayments(group) {
+            // Fonction helper pour obtenir la valeur d'une colonne
+            function getColumnValue(row, possibleNames) {
+                for (let name of possibleNames) {
+                    if (row.hasOwnProperty(name)) {
+                        return row[name];
+                    }
+                }
+                return null;
+            }
+
+            let message = '';
+            let totalGeneral = 0;
+            
+            message += `👉 ${group.statut}\n\n`;
+
+            // Pour chaque mode de paiement
+            group.paymentGroups.forEach((paymentGroup, index) => {
+                // Afficher le titre du mode de paiement
+                if (paymentGroup.typeP === 'Crédit') {
+                    message += `💳 Crédit\n`;
+                } else if (paymentGroup.typeP === 'Mode de paiement inconnu') {
+                    message += `❓ Mode de paiement inconnu\n`;
+                } else {
+                    message += `💵 Payé ${paymentGroup.typeP}\n`;
+                }
+                message += `${'─'.repeat(40)}\n`;
+                
+                // Grouper les produits identiques avec le même prix
+                const productGroups = {};
+                
+                paymentGroup.rows.forEach(row => {
+                    let produit = getColumnValue(row, ['Produit', 'produit']) || 'Produit non spécifié';
+                    // Nettoyer les espaces
+                    if (produit.toString().trim() === '') {
+                        produit = 'Produit non spécifié';
+                    }
+                    const prix = parseFloat(getColumnValue(row, ['Prix', 'prix'])) || 0;
+                    const qte = parseFloat(getColumnValue(row, ['Qte', 'qte', 'Quantité', 'quantite'])) || 0;
+                    
+                    const key = `${produit}|||${prix}`;
+                    
+                    if (!productGroups[key]) {
+                        productGroups[key] = {
+                            produit: produit,
+                            prix: prix,
+                            qte: 0
+                        };
+                    }
+                    
+                    productGroups[key].qte += qte;
+                });
+                
+                let sousTotal = 0;
+                
+                // Afficher les produits
+                Object.values(productGroups).forEach(item => {
+                    const montant = Math.round(item.qte * item.prix * 100) / 100;
+                    sousTotal += montant;
+                    
+                    const qteFormatted = item.qte % 1 === 0 ? Math.round(item.qte) : item.qte;
+                    const prixFormatted = item.prix % 1 === 0 ? Math.round(item.prix) : item.prix;
+                    const montantFormatted = montant % 1 === 0 ? Math.round(montant) : montant;
+                    
+                    message += `${qteFormatted} ${item.produit} × ${prixFormatted} = ${montantFormatted}Dh\n`;
+                });
+                
+                sousTotal = Math.round(sousTotal * 100) / 100;
+                const sousTotalFormatted = sousTotal % 1 === 0 ? Math.round(sousTotal) : sousTotal;
+                totalGeneral += sousTotal;
+                
+                // Afficher le sous-total
+                if (paymentGroup.typeP === 'Crédit') {
+                    message += `\n✅ Total Crédit : ${sousTotalFormatted}Dh\n`;
+                } else if (paymentGroup.typeP === 'Mode de paiement inconnu') {
+                    message += `\n✅ Total Mode inconnu : ${sousTotalFormatted}Dh\n`;
+                } else {
+                    message += `\n✅ Total ${paymentGroup.typeP} : ${sousTotalFormatted}Dh\n`;
+                }
+                
+                // Ajouter une ligne de séparation si ce n'est pas le dernier groupe
+                if (index < group.paymentGroups.length - 1) {
+                    message += `\n`;
+                }
+            });
+
+            // Si plusieurs modes de paiement, afficher le total général
+            if (group.paymentGroups.length > 1) {
+                totalGeneral = Math.round(totalGeneral * 100) / 100;
+                const totalGeneralFormatted = totalGeneral % 1 === 0 ? Math.round(totalGeneral) : totalGeneral;
+                message += `\n${'═'.repeat(40)}\n`;
+                message += `🎯 TOTAL GÉNÉRAL : ${totalGeneralFormatted}Dh\n`;
+                message += `${'═'.repeat(40)}\n`;
+            }
+            
+            message += `\nClient : ${group.client}\n`;
+            message += `👉 ${group.statut}`;
+
+            return message;
+        }
+
+        function displayMessages() {
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('messagesContainer').style.display = 'block';
+
+            // Calculer les totaux généraux
+            let totalGeneral = 0;
+            let totalParPaiement = {};
+            let nombreMessages = 0;
+
+            Object.keys(generatedMessages).forEach(key => {
+                const msg = generatedMessages[key];
+                nombreMessages++;
+                
+                // Extraire les totaux du message pour calculer le total général
+                const lines = msg.message.split('\n');
+                lines.forEach(line => {
+                    // Chercher les lignes avec des montants (format: X produit × Y = ZDh)
+                    const match = line.match(/(\d+(?:\.\d+)?)\s+.+\s+×\s+(\d+(?:\.\d+)?)\s+=\s+(\d+(?:\.\d+)?)Dh/);
+                    if (match) {
+                        const montant = parseFloat(match[3]);
+                        totalGeneral += montant;
+                    }
+                    
+                    // Chercher les sous-totaux par mode de paiement
+                    const matchTotal = line.match(/✅ Total (.+?) : (\d+(?:\.\d+)?)Dh/);
+                    if (matchTotal) {
+                        const typePaiement = matchTotal[1];
+                        const montant = parseFloat(matchTotal[2]);
+                        if (!totalParPaiement[typePaiement]) {
+                            totalParPaiement[typePaiement] = 0;
+                        }
+                        totalParPaiement[typePaiement] += montant;
+                    }
+                });
+            });
+
+            totalGeneral = Math.round(totalGeneral * 100) / 100;
+            const totalGeneralFormatted = totalGeneral % 1 === 0 ? Math.round(totalGeneral) : totalGeneral;
+
+            // Afficher le récapitulatif général
+            let recapHTML = `
+                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">
+                    <h2 style="color: white; border-bottom: 3px solid white;">📊 RÉCAPITULATIF GÉNÉRAL</h2>
+                    <div style="font-size: 1.2em; line-height: 2;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>📋 Nombre de messages :</span>
+                            <strong style="font-size: 1.3em;">${nombreMessages}</strong>
+                        </div>
+            `;
+
+            // Afficher les totaux par mode de paiement
+            if (Object.keys(totalParPaiement).length > 0) {
+                recapHTML += `<div style="margin: 20px 0; padding-top: 15px; border-top: 2px solid rgba(255,255,255,0.5);">`;
+                Object.keys(totalParPaiement).forEach(type => {
+                    const montant = totalParPaiement[type];
+                    const montantFormatted = montant % 1 === 0 ? Math.round(montant) : montant.toFixed(2);
+                    recapHTML += `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                            <span>💰 ${type} :</span>
+                            <strong style="font-size: 1.2em;">${montantFormatted} Dh</strong>
+                        </div>
+                    `;
+                });
+                recapHTML += `</div>`;
+            }
+
+            recapHTML += `
+                        <div style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 3px solid white; font-size: 1.5em;">
+                            <span>🎯 TOTAL GÉNÉRAL :</span>
+                            <strong style="font-size: 1.4em;">${totalGeneralFormatted} Dh</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            let html = recapHTML;
+            
+            // Afficher chaque message
+            Object.keys(generatedMessages).forEach(key => {
+                const msg = generatedMessages[key];
+                html += `
+                    <div class="message-card">
+                        <h3>📋 ${msg.client} - ${msg.statut}</h3>
+                        <div class="message-content">${msg.message}</div>
+                        <div class="message-actions-inline">
+                            <button class="btn-small" onclick="copyMessage('${key}')">📋 Copier</button>
+                            <button class="btn-small" onclick="openWhatsApp('${key}')">📱 WhatsApp</button>
+                            <button class="btn-small" onclick="downloadSingleMessage('${key}')">💾 Télécharger</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('messagesDisplay').innerHTML = html;
+        }
+
+        function displayMessagesList() {
+            let html = '';
+            Object.keys(generatedMessages).forEach(key => {
+                const msg = generatedMessages[key];
+                html += `
+                    <div class="message-list-item" onclick="downloadSingleMessage('${key}')">
+                        <div>
+                            <strong>${msg.client}</strong> - ${msg.statut}
+                        </div>
+                        <span>💾</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('messagesList').innerHTML = html;
+            document.getElementById('messagesListPanel').style.display = 'block';
+        }
+
+        function copyMessage(key) {
+            const message = generatedMessages[key].message;
+            navigator.clipboard.writeText(message).then(() => {
+                showSuccessToast();
+            });
+        }
+
+        function openWhatsApp(key) {
+            const message = generatedMessages[key].message;
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+        }
+
+        function downloadSingleMessage(key) {
+            const msg = generatedMessages[key];
+            const filename = `${msg.client}_${msg.statut}.txt`.replace(/[^a-z0-9_\-\.]/gi, '_');
+            const blob = new Blob([msg.message], {type: 'text/plain;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadAllMessages() {
+            const zip = new JSZip();
+            
+            Object.keys(generatedMessages).forEach(key => {
+                const msg = generatedMessages[key];
+                const filename = `${msg.client}_${msg.statut}.txt`.replace(/[^a-z0-9_\-\.]/gi, '_');
+                zip.file(filename, msg.message);
+            });
+
+            zip.generateAsync({type: 'blob'}).then(function(content) {
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'messages_whatsapp.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        function showSuccessToast() {
+            const toast = document.getElementById('successToast');
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

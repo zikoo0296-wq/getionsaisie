@@ -1,0 +1,19 @@
+{
+  "name": "excel-to-whatsapp",
+  "version": "1.0.0",
+  "description": "Convertisseur de fichiers Excel vers messages WhatsApp formatés",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "start": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "excel",
+    "whatsapp",
+    "converter",
+    "xlsx",
+    "messages"
+  ],
+  "author": "Zack",
+  "license": "MIT"
+}

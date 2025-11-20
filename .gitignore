@@ -1,0 +1,36 @@
+# Dépendances
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel
+.vercel
+
+# Système d'exploitation
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Fichiers temporaires
+*.tmp
+*.temp
+.cache/
+
+# Fichiers Excel de test
+*.xlsx
+*.xls
+!exemple.xlsx
+
+# Environnement
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
