@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel vers WhatsApp</title>
+    <title>EcomLik - Gestion de Saisie</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAABiElEQVR4nO2XPU4DMRCFP4QoKOiooKXhCpyAK3AErkBLQ0NFQUVDQ0FBQUlPxRU4AkfgCEhI0NDQUFBQ8Uj7pJF3vbM/S5BYaaTRjO3x9/zGY1iypEmTJk36/+QBp8AF8ALMAo/AOfC0qBe4Bm6Bq1n7O3AFPABHwGKexoA94BP4Aj6Ae2AL6MzZF+gAm8Aj8A18A/fAFrA4TyPAEvAJ/AB/wCdwAyxPOhfYBD6AX+AX+AA2xp0LrAF3wG/gF/gG7oA1YGGUudDnLe//gN/Wb0d2wuW53/Nr7NsnMd+QDbwNZLCE/o0yt99TDPCTYkAikiFdA74jGzCB+5QKSNQ5gVv7VyPHgHPgO7IBE7hKqYBYnRO4lfIaMYFzYJhSATG7wK2U14gJnAFhSgXEah24lfIaMYEzYJBSAbE6B24l7jViAmfA0JQKiNU5cCvxriETOAOGplRArM6BWynvETOBM2BoSgUk6hy4lfweMRU4A4amVECizoFbie8RU4EzYGhKBSTqHLiV9B4xFTgFhqaU/gL/AO2JF3t6KrJbAAAAAElFTkSuQmCC">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
@@ -14,7 +15,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FDB913 0%, #FFCD3C 50%, #FDB913 100%);
             min-height: 100vh;
             padding: 20px;
             direction: ltr;
@@ -29,17 +30,41 @@
             text-align: center;
             color: white;
             margin-bottom: 30px;
+            background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(211, 47, 47, 0.4);
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .header-logo img {
+            height: 80px;
+            width: auto;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.3));
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            background: linear-gradient(to right, #FDB913, #FFCD3C);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
         }
 
         .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
+            font-size: 1.2em;
+            opacity: 0.95;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .main-content {
@@ -62,37 +87,37 @@
         }
 
         .card h2 {
-            color: #667eea;
+            color: #D32F2F;
             margin-bottom: 20px;
             font-size: 1.5em;
-            border-bottom: 3px solid #667eea;
+            border-bottom: 3px solid #FDB913;
             padding-bottom: 10px;
         }
 
         .upload-zone {
-            border: 3px dashed #667eea;
+            border: 3px dashed #D32F2F;
             border-radius: 10px;
             padding: 40px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            background: #f8f9ff;
+            background: #FFF8E1;
         }
 
         .upload-zone:hover {
-            background: #e8ebff;
-            border-color: #764ba2;
+            background: #FFECB3;
+            border-color: #FDB913;
         }
 
         .upload-zone.dragover {
-            background: #d0d7ff;
-            border-color: #764ba2;
+            background: #FFE082;
+            border-color: #FDB913;
             transform: scale(1.02);
         }
 
         .upload-icon {
             font-size: 4em;
-            color: #667eea;
+            color: #D32F2F;
             margin-bottom: 15px;
         }
 
@@ -101,7 +126,7 @@
         }
 
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%);
             color: white;
             border: none;
             padding: 12px 30px;
@@ -109,13 +134,14 @@
             font-size: 1em;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.3);
             margin-top: 15px;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
+            background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
         }
 
         .btn:active {
@@ -212,13 +238,13 @@
         }
 
         th {
-            background: #667eea;
+            background: #D32F2F;
             color: white;
             font-weight: 600;
         }
 
         tr:nth-child(even) {
-            background: #f8f9ff;
+            background: #FFF8E1;
         }
 
         .settings {
@@ -250,15 +276,15 @@
         }
 
         .message-card {
-            background: #f8f9ff;
-            border: 2px solid #667eea;
+            background: #FFF8E1;
+            border: 2px solid #FDB913;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 15px;
         }
 
         .message-card h3 {
-            color: #667eea;
+            color: #D32F2F;
             margin-bottom: 10px;
             font-size: 1.2em;
         }
@@ -284,7 +310,7 @@
         }
 
         .btn-small {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%);
             color: white;
             border: none;
             padding: 8px 20px;
@@ -292,17 +318,17 @@
             font-size: 0.9em;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 10px rgba(211, 47, 47, 0.3);
         }
 
         .btn-small:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
         }
 
         .message-list-item {
             background: white;
-            border: 2px solid #667eea;
+            border: 2px solid #FDB913;
             border-radius: 8px;
             padding: 12px;
             margin-bottom: 10px;
@@ -314,12 +340,12 @@
         }
 
         .message-list-item:hover {
-            background: #f8f9ff;
+            background: #FFF8E1;
             transform: translateX(5px);
         }
 
         .message-list-item strong {
-            color: #667eea;
+            color: #D32F2F;
         }
 
         .success-toast {
@@ -352,8 +378,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📱 Excel vers WhatsApp</h1>
-            <p>Convertissez vos données Excel en message WhatsApp formaté</p>
+            <div class="header-logo">
+                <img src="data:image/png;base64,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" alt="EcomLik">
+                <div>
+                    <h1>📱 EcomLik</h1>
+                    <p>Gestion de Saisie</p>
+                    
+                </div>
+            </div>
+            <p>Convertissez vos données Excel en messages WhatsApp formatés</p>
         </div>
 
         <div class="main-content">
@@ -832,8 +865,8 @@
 
             // Afficher le récapitulatif général
             let recapHTML = `
-                <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-bottom: 20px;">
-                    <h2 style="color: white; border-bottom: 3px solid white;">📊 RÉCAPITULATIF GÉNÉRAL</h2>
+                <div class="card" style="background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%); color: white; margin-bottom: 20px;">
+                    <h2 style="color: white; border-bottom: 3px solid #FDB913;">📊 RÉCAPITULATIF GÉNÉRAL</h2>
                     <div style="font-size: 1.2em; line-height: 2;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span>📋 Nombre de messages :</span>
