@@ -489,6 +489,7 @@
     <script>
         let excelData = null;
         let generatedMessages = {};
+        let productsList = {}; // Dictionnaire produit -> lien image
 
         // Fonction pour afficher un toast
         function showToast(message) {
@@ -575,6 +576,48 @@
                     return newRow;
                 });
                 
+                // Détection automatique des images depuis Sheet1
+                console.log('🔍 Détection automatique des images depuis Sheet1...');
+                console.log('📦 Nombre de lignes dans Excel:', excelData.length);
+                
+                productsList = {};
+                let imagesDetectees = 0;
+                
+                excelData.forEach((row, index) => {
+                    const produit = row['Produit'] || row['produit'] || row['PRODUIT'];
+                    const image = row['Image'] || row['Image '] || row['image'] || row['IMAGE'];
+                    
+                    // Log des 3 premières lignes pour debug
+                    if (index < 3) {
+                        console.log(`  Ligne ${index + 1}:`);
+                        console.log(`    Produit: "${produit}"`);
+                        console.log(`    Image: "${image}"`);
+                        console.log(`    Type image: ${typeof image}`);
+                    }
+                    
+                    if (produit && image && typeof image === 'string' && image.includes('drive.google.com')) {
+                        const key = produit.toString().trim().toLowerCase();
+                        productsList[key] = image;
+                        imagesDetectees++;
+                        
+                        if (imagesDetectees <= 3) {
+                            console.log(`    ✅ IMAGE DÉTECTÉE: "${key}" -> ${image.substring(0, 50)}...`);
+                        }
+                    }
+                });
+                
+                console.log(`✅ ${imagesDetectees} images détectées automatiquement depuis Sheet1`);
+                console.log('📸 Exemples de clés:', Object.keys(productsList).slice(0, 5));
+                
+                if (imagesDetectees > 0) {
+                    showToast(`📸 ${imagesDetectees} produits avec images détectés`);
+                } else {
+                    console.log('⚠️ Aucune image détectée. Vérifiez:');
+                    console.log('  - La colonne "Image" existe dans Sheet1');
+                    console.log('  - Les URLs contiennent "drive.google.com"');
+                    console.log('  - Les URLs ne sont pas vides');
+                }
+                
                 displayPreview();
                 document.getElementById('settingsPanel').style.display = 'block';
             };
@@ -619,13 +662,16 @@
                 return null;
             }
 
-            // Grouper par Client + Statut + Type P (mode de paiement)
+            // Grouper par Client + Statut + Type P (mode de paiement) + DATE
             const grouped = {};
             excelData.forEach(row => {
                 const client = getColumnValue(row, ['Nom', 'Nom ', 'nom']) || 'Client inconnu';
                 let produit = getColumnValue(row, ['Produit', 'produit']);
                 const prix = getColumnValue(row, ['Prix', 'prix']);
                 const qte = getColumnValue(row, ['Qte', 'qte', 'Quantité', 'quantite']);
+                
+                // Extraire la date
+                const dateValue = row.date || row.Date || row.DATE || 'Sans date';
                 
                 // Ignorer les lignes vides (sans prix OU sans quantité)
                 // MAIS accepter les lignes même si le produit est vide
@@ -664,8 +710,8 @@
                     typeP = 'Espèce';
                 }
                 
-                // Créer une clé unique : client_statut_typeP
-                const key = `${client}_${statut}_${typeP}`;
+                // Créer une clé unique : client_statut_typeP_date
+                const key = `${client}_${statut}_${typeP}_${dateValue}`;
                 
                 if (!grouped[key]) {
                     grouped[key] = {
@@ -673,26 +719,28 @@
                         statut: statut,
                         typeP: typeP,
                         paiement: paiement,
+                        date: dateValue,
                         rows: []
                     };
                 }
                 grouped[key].rows.push(row);
             });
 
-            // Regrouper par client + statut (sans typeP) pour gérer les multiples modes de paiement
+            // Regrouper par client + statut + date (sans typeP) pour gérer les multiples modes de paiement
             const finalGrouped = {};
             Object.values(grouped).forEach(group => {
-                const keyClientStatut = `${group.client}_${group.statut}`;
+                const keyClientStatutDate = `${group.client}_${group.statut}_${group.date}`;
                 
-                if (!finalGrouped[keyClientStatut]) {
-                    finalGrouped[keyClientStatut] = {
+                if (!finalGrouped[keyClientStatutDate]) {
+                    finalGrouped[keyClientStatutDate] = {
                         client: group.client,
                         statut: group.statut,
+                        date: group.date,
                         paymentGroups: []
                     };
                 }
                 
-                finalGrouped[keyClientStatut].paymentGroups.push({
+                finalGrouped[keyClientStatutDate].paymentGroups.push({
                     typeP: group.typeP,
                     paiement: group.paiement,
                     rows: group.rows
@@ -705,14 +753,9 @@
                 const group = finalGrouped[key];
                 const message = createMessageWithPayments(group);
                 
-                // Récupérer la date depuis le premier élément du groupe
-                let dateValue = 'Sans date';
-                if (group.items && group.items.length > 0) {
-                    const firstItem = group.items[0];
-                    if (firstItem.date) dateValue = firstItem.date.toString().trim();
-                    else if (firstItem.Date) dateValue = firstItem.Date.toString().trim();
-                    else if (firstItem.DATE) dateValue = firstItem.DATE.toString().trim();
-                }
+                // La date est déjà dans le groupe
+                const dateValue = group.date || 'Sans date';
+                console.log(`📅 Date pour ${group.client}: ${dateValue}`);
                 
                 generatedMessages[key] = {
                     client: group.client,
@@ -1012,6 +1055,8 @@
                             <button class="btn-small" onclick="copyMessage('${key}')">📋 Copier</button>
                             <button class="btn-small" onclick="openWhatsApp('${key}')">📱 WhatsApp</button>
                             <button class="btn-small" onclick="downloadSingleMessage('${key}')">💾 Télécharger</button>
+                            ${Object.keys(productsList).length > 0 ? `<button class="btn-small" onclick="generateImagesForMessage('${key}')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📸 Générer images</button>` : ''}
+                            ${Object.keys(productsList).length > 0 ? `<button class="btn-small" onclick="downloadImagesForMessage('${key}')" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%);">💾 Photos</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -1288,6 +1333,8 @@
                                 <button class="btn-small" onclick="copyMessage('${key}')">📋 Copier</button>
                                 <button class="btn-small" onclick="openWhatsApp('${key}')">📱 WhatsApp</button>
                                 <button class="btn-small" onclick="downloadSingleMessage('${key}')">💾 Télécharger</button>
+                                ${Object.keys(productsList).length > 0 ? `<button class="btn-small" onclick="generateImagesForMessage('${key}')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📸 Générer images</button>` : ''}
+                                ${Object.keys(productsList).length > 0 ? `<button class="btn-small" onclick="downloadImagesForMessage('${key}')" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%);">💾 Photos</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -1512,6 +1559,273 @@
         });
         
         // ========== FIN DU SYSTÈME DE SAUVEGARDE ==========
+
+        // ========== SYSTÈME DE GÉNÉRATION D'IMAGES ==========
+        
+        // Convertir lien Google Drive en lien direct (avec proxy CORS)
+        function convertGDriveLink(link) {
+            try {
+                let fileId = '';
+                if (link.includes('id=')) {
+                    fileId = link.split('id=')[1].split('&')[0];
+                } else if (link.includes('/d/')) {
+                    fileId = link.split('/d/')[1].split('/')[0];
+                }
+                // Utiliser le lien thumbnail qui fonctionne sans CORS
+                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+            } catch (e) {
+                console.error('❌ Erreur conversion lien:', e);
+                return link;
+            }
+        }
+        
+        // Extraire les produits d'un message
+        function extractProductsFromMessage(messageText) {
+            const products = [];
+            const lines = messageText.split('\n');
+            const productRegex = /(\d+(?:\.\d+)?)\s+(.+?)\s+×\s+(\d+(?:\.\d+)?)\s+=\s+(\d+(?:\.\d+)?)Dh/;
+            
+            for (const line of lines) {
+                const match = line.match(productRegex);
+                if (match) {
+                    products.push({
+                        quantity: parseFloat(match[1]),
+                        name: match[2].trim(),
+                        price: parseFloat(match[3]),
+                        total: parseFloat(match[4])
+                    });
+                }
+            }
+            
+            return products;
+        }
+        
+        // Générer les grilles d'images pour un message
+        async function generateImagesForMessage(messageKey) {
+            console.log('🎨 GÉNÉRATION D\'IMAGES POUR MESSAGE:', messageKey);
+            
+            const message = generatedMessages[messageKey];
+            if (!message) {
+                console.error('❌ Message introuvable:', messageKey);
+                alert('❌ Message introuvable');
+                return;
+            }
+            
+            console.log('📋 Client:', message.client);
+            console.log('📦 Contenu message:', message.message.substring(0, 200) + '...');
+            
+            const products = extractProductsFromMessage(message.message);
+            console.log('🔍 Produits extraits:', products.length);
+            
+            if (products.length === 0) {
+                console.error('❌ Aucun produit trouvé dans le message');
+                alert('❌ Aucun produit trouvé dans le message');
+                return;
+            }
+            
+            console.log('📋 Liste des produits:');
+            products.forEach((p, i) => {
+                console.log(`  ${i + 1}. "${p.name}" (Qté: ${p.quantity})`);
+            });
+            
+            console.log('📸 Recherche des images dans productsList...');
+            console.log('📦 Taille de productsList:', Object.keys(productsList).length);
+            
+            const productImages = [];
+            const notFound = [];
+            
+            for (const product of products) {
+                const productNameLower = product.name.toLowerCase().trim();
+                const imageLink = productsList[productNameLower];
+                
+                if (imageLink) {
+                    console.log(`  ✅ Image trouvée pour "${product.name}"`);
+                    productImages.push({
+                        name: product.name,
+                        link: convertGDriveLink(imageLink),
+                        quantity: product.quantity
+                    });
+                } else {
+                    console.log(`  ❌ Image NON trouvée pour "${product.name}" (clé: "${productNameLower}")`);
+                    notFound.push(product.name);
+                }
+            }
+            
+            console.log('📊 Résultat:');
+            console.log(`  ✅ Images trouvées: ${productImages.length}`);
+            console.log(`  ❌ Images manquantes: ${notFound.length}`);
+            
+            if (productImages.length === 0) {
+                alert(`❌ Aucune image trouvée pour les produits de ce message.\n\nProduits recherchés:\n${notFound.join('\n')}`);
+                return;
+            }
+            
+            console.log('🎨 Création des grilles...');
+            await createImageGrids(productImages, message.client, messageKey);
+        }
+        
+        // Créer les grilles d'images (HTML au lieu de Canvas pour éviter CORS)
+        async function createImageGrids(productImages, clientName) {
+            const GRID_SIZE = 3;
+            const MAX_PER_GRID = 9;
+            
+            const grids = [];
+            for (let i = 0; i < productImages.length; i += MAX_PER_GRID) {
+                grids.push(productImages.slice(i, i + MAX_PER_GRID));
+            }
+            
+            let container = document.getElementById('imageGridsContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'imageGridsContainer';
+                container.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; max-width: 90vw; max-height: 90vh; overflow-y: auto;';
+                document.body.appendChild(container);
+            }
+            
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #333;">📸 Images pour ${clientName}</h2>
+                    <button onclick="document.getElementById('imageGridsContainer').remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px;">✕ Fermer</button>
+                </div>
+                <p style="color: #666; margin-bottom: 20px;">📱 Faites une capture d'écran de cette grille pour l'envoyer sur WhatsApp</p>
+                <div id="gridsContent"></div>
+            `;
+            
+            const gridsContent = document.getElementById('gridsContent');
+            
+            for (let gridIndex = 0; gridIndex < grids.length; gridIndex++) {
+                createSingleGridHTML(grids[gridIndex], gridIndex + 1, gridsContent, clientName);
+            }
+        }
+        
+        // Créer une seule grille HTML
+        function createSingleGridHTML(products, gridNumber, container, clientName) {
+            const gridDiv = document.createElement('div');
+            gridDiv.style.cssText = 'margin-bottom: 30px; padding: 20px; background: white; border: 2px solid #ddd; border-radius: 10px;';
+            
+            let gridHTML = `
+                <h3 style="color: #667eea; margin-bottom: 15px;">Grille ${gridNumber} - ${clientName}</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+            `;
+            
+            products.forEach((product, index) => {
+                gridHTML += `
+                    <div style="text-align: center; padding: 10px; background: #f9f9f9; border-radius: 8px;">
+                        <img src="${product.link}" 
+                             style="width: 100%; height: 250px; object-fit: contain; border-radius: 8px; background: white; margin-bottom: 10px;"
+                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22250%22><rect width=%22300%22 height=%22250%22 fill=%22%23e0e0e0%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2240%22>📷</text></svg>'">
+                        <div style="font-weight: bold; color: #333; font-size: 14px; margin-bottom: 5px; min-height: 40px; display: flex; align-items: center; justify-content: center;">
+                            ${product.name.length > 30 ? product.name.substring(0, 27) + '...' : product.name}
+                        </div>
+                        <div style="color: #667eea; font-weight: bold; font-size: 16px;">
+                            Qté: ${product.quantity}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            gridHTML += `
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f0f0f0; border-radius: 8px; color: #666;">
+                    📱 Faites une capture d'écran pour envoyer cette grille
+                </div>
+            `;
+            
+            gridDiv.innerHTML = gridHTML;
+            container.appendChild(gridDiv);
+        }
+        
+        // Afficher les liens des images d'un message
+        async function downloadImagesForMessage(messageKey) {
+            console.log('📸 AFFICHAGE DES LIENS IMAGES POUR MESSAGE:', messageKey);
+            
+            const message = generatedMessages[messageKey];
+            if (!message) {
+                console.error('❌ Message introuvable:', messageKey);
+                alert('❌ Message introuvable');
+                return;
+            }
+            
+            const products = extractProductsFromMessage(message.message);
+            console.log('🔍 Produits extraits:', products.length);
+            
+            if (products.length === 0) {
+                alert('❌ Aucun produit trouvé dans le message');
+                return;
+            }
+            
+            const productImages = [];
+            for (const product of products) {
+                const productNameLower = product.name.toLowerCase().trim();
+                const imageLink = productsList[productNameLower];
+                
+                if (imageLink) {
+                    productImages.push({
+                        name: product.name,
+                        originalLink: imageLink,
+                        directLink: convertGDriveLink(imageLink),
+                        quantity: product.quantity
+                    });
+                }
+            }
+            
+            if (productImages.length === 0) {
+                alert('❌ Aucune image trouvée pour les produits de ce message');
+                return;
+            }
+            
+            console.log(`📸 ${productImages.length} images trouvées`);
+            
+            // Créer une fenêtre modale avec tous les liens
+            let container = document.getElementById('imageLinksContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'imageLinksContainer';
+                container.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; max-width: 800px; max-height: 90vh; overflow-y: auto;';
+                document.body.appendChild(container);
+            }
+            
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #333;">📸 Images pour ${message.client} - ${message.date}</h2>
+                    <button onclick="document.getElementById('imageLinksContainer').remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px;">✕ Fermer</button>
+                </div>
+                <p style="color: #666; margin-bottom: 20px;">💡 Cliquez sur "📥 Télécharger" pour chaque image</p>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+            `;
+            
+            productImages.forEach((product, index) => {
+                html += `
+                    <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ddd;">
+                        <img src="${product.directLink}" 
+                             style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; background: white;"
+                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect width=%22100%22 height=%22100%22 fill=%22%23e0e0e0%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2240%22>📷</text></svg>'">
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #333; margin-bottom: 5px;">
+                                ${index + 1}. ${product.name}
+                            </div>
+                            <div style="color: #667eea; font-weight: bold;">
+                                Quantité: ${product.quantity}
+                            </div>
+                        </div>
+                        <a href="${product.originalLink}" target="_blank" download style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; white-space: nowrap;">
+                            📥 Télécharger
+                        </a>
+                    </div>
+                `;
+            });
+            
+            html += `
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">
+                    <strong>💡 Astuce :</strong> Cliquez sur "📥 Télécharger" pour chaque image. L'image s'ouvrira dans Google Drive où vous pourrez la télécharger.
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // ========== FIN DU SYSTÈME DE GÉNÉRATION D'IMAGES ==========
 
 </script>
 </body>
