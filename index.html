@@ -387,6 +387,12 @@
                 </div>
             </div>
             <p>Convertissez vos données Excel en messages WhatsApp formatés</p>
+            <div style="text-align: center; margin-top: 15px;">
+                <button onclick="resetLocalStorage()" class="btn-small" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); padding: 10px 25px;">
+                    🔄 Réinitialiser les données
+                </button>
+                <span id="lastSaveInfo" style="margin-left: 15px; color: #666; font-size: 0.9em;"></span>
+            </div>
         </div>
 
         <div class="main-content">
@@ -483,6 +489,18 @@
     <script>
         let excelData = null;
         let generatedMessages = {};
+
+        // Fonction pour afficher un toast
+        function showToast(message) {
+            const toast = document.getElementById('successToast');
+            if (toast) {
+                toast.textContent = message;
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            }
+        }
 
         // Gestion du drag & drop
         const uploadZone = document.getElementById('uploadZone');
@@ -963,6 +981,9 @@
 
             document.getElementById('messagesDisplay').innerHTML = html;
             
+            // Sauvegarder automatiquement dans localStorage
+            saveToLocalStorage();
+            
             // Créer la colonne de filtrage
             populateLocationFilter();
         }
@@ -1236,6 +1257,12 @@
             });
 
             document.getElementById('messagesDisplay').innerHTML = html;
+            
+            // Sauvegarder après filtrage
+            saveToLocalStorage();
+            
+            // Sauvegarder automatiquement dans localStorage
+            saveToLocalStorage();
             updateFilterCount(nombreMessages);
         }
         
@@ -1329,6 +1356,98 @@
                 alert('❌ Erreur lors de la copie');
             });
         }
+
+
+        // ========== SYSTÈME DE SAUVEGARDE LOCALE ==========
+        
+        const STORAGE_KEY = 'ecomlik_messages';
+        const STORAGE_DATE_KEY = 'ecomlik_save_date';
+        
+        // Sauvegarder les messages dans localStorage
+        function saveToLocalStorage() {
+            try {
+                const dataToSave = {
+                    messages: generatedMessages,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                localStorage.setItem(STORAGE_DATE_KEY, new Date().toLocaleString('fr-FR'));
+                updateLastSaveInfo();
+                console.log('✅ Données sauvegardées localement');
+            } catch (error) {
+                console.error('❌ Erreur de sauvegarde:', error);
+                alert('Erreur lors de la sauvegarde locale');
+            }
+        }
+        
+        // Charger les messages depuis localStorage
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    generatedMessages = data.messages || {};
+                    
+                    if (Object.keys(generatedMessages).length > 0) {
+                        console.log('✅ Données chargées depuis localStorage');
+                        document.getElementById('emptyState').style.display = 'none';
+                        document.getElementById('messagesContainer').style.display = 'block';
+                        displayMessages();
+                        populateLocationFilter();
+                        updateLastSaveInfo();
+                        showToast('📂 Données restaurées depuis la sauvegarde locale');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Erreur de chargement:', error);
+            }
+        }
+        
+        // Réinitialiser localStorage
+        function resetLocalStorage() {
+            if (confirm('⚠️ Voulez-vous vraiment supprimer toutes les données sauvegardées ?\n\nCette action est irréversible.')) {
+                try {
+                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem(STORAGE_DATE_KEY);
+                    generatedMessages = {};
+                    
+                    // Réafficher l'état vide
+                    document.getElementById('messagesContainer').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'flex';
+                    
+                    updateLastSaveInfo();
+                    showToast('🗑️ Données supprimées avec succès');
+                    console.log('✅ localStorage réinitialisé');
+                } catch (error) {
+                    console.error('❌ Erreur de réinitialisation:', error);
+                    alert('Erreur lors de la réinitialisation');
+                }
+            }
+        }
+        
+        // Mettre à jour l'info de dernière sauvegarde
+        function updateLastSaveInfo() {
+            const lastSaveDate = localStorage.getItem(STORAGE_DATE_KEY);
+            const infoElement = document.getElementById('lastSaveInfo');
+            
+            if (infoElement) {
+                if (lastSaveDate && Object.keys(generatedMessages).length > 0) {
+                    infoElement.innerHTML = `💾 Dernière sauvegarde : ${lastSaveDate}`;
+                    infoElement.style.color = '#27ae60';
+                } else {
+                    infoElement.innerHTML = '📝 Aucune sauvegarde';
+                    infoElement.style.color = '#999';
+                }
+            }
+        }
+        
+        // Charger les données au démarrage
+        window.addEventListener('DOMContentLoaded', function() {
+            loadFromLocalStorage();
+        });
+        
+        // ========== FIN DU SYSTÈME DE SAUVEGARDE ==========
+
 </script>
 </body>
 </html>
