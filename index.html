@@ -873,7 +873,7 @@
             let message = '';
             let totalGeneral = 0;
             
-            message += `👉 ${group.statut}\n\n`;
+            message += `👉 ${group.statut} ${group.date}\n\n`;
 
             // Pour chaque mode de paiement
             group.paymentGroups.forEach((paymentGroup, index) => {
@@ -1790,7 +1790,14 @@
                     <h2 style="margin: 0; color: #333;">📸 Images pour ${message.client} - ${message.date}</h2>
                     <button onclick="document.getElementById('imageLinksContainer').remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px;">✕ Fermer</button>
                 </div>
-                <p style="color: #666; margin-bottom: 20px;">💡 Cliquez sur "📥 Télécharger" pour chaque image</p>
+                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                    <button onclick="openAllImageLinks()" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px;">
+                        📥 Ouvrir toutes les images (${productImages.length})
+                    </button>
+                    <p style="margin: 0; color: #666; line-height: 1.5; flex: 1;">
+                        💡 Cliquez pour ouvrir toutes les images Google Drive dans des onglets séparés
+                    </p>
+                </div>
                 <div style="display: flex; flex-direction: column; gap: 15px;">
             `;
             
@@ -1808,8 +1815,8 @@
                                 Quantité: ${product.quantity}
                             </div>
                         </div>
-                        <a href="${product.originalLink}" target="_blank" download style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; white-space: nowrap;">
-                            📥 Télécharger
+                        <a href="${product.originalLink}" target="_blank" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; white-space: nowrap;">
+                            📥 Ouvrir
                         </a>
                     </div>
                 `;
@@ -1818,11 +1825,34 @@
             html += `
                 </div>
                 <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">
-                    <strong>💡 Astuce :</strong> Cliquez sur "📥 Télécharger" pour chaque image. L'image s'ouvrira dans Google Drive où vous pourrez la télécharger.
+                    <strong>💡 Astuce :</strong> Utilisez le bouton "📥 Ouvrir toutes les images" pour ouvrir tous les liens Google Drive en même temps. Ensuite, téléchargez rapidement chaque image.
                 </div>
             `;
             
             container.innerHTML = html;
+            
+            // Stocker les liens pour la fonction openAllImageLinks
+            window.currentImageLinks = productImages.map(p => p.originalLink);
+        }
+        
+        // Ouvrir tous les liens d'images en même temps
+        function openAllImageLinks() {
+            if (!window.currentImageLinks || window.currentImageLinks.length === 0) {
+                alert('❌ Aucune image à ouvrir');
+                return;
+            }
+            
+            console.log(`📥 Ouverture de ${window.currentImageLinks.length} images...`);
+            
+            // Ouvrir chaque lien dans un nouvel onglet
+            window.currentImageLinks.forEach((link, index) => {
+                setTimeout(() => {
+                    window.open(link, '_blank');
+                    console.log(`  ✅ ${index + 1}/${window.currentImageLinks.length} - ${link.substring(0, 50)}...`);
+                }, index * 200); // Délai de 200ms entre chaque ouverture
+            });
+            
+            showToast(`📥 ${window.currentImageLinks.length} onglets ouverts !`);
         }
         
         // ========== FIN DU SYSTÈME DE GÉNÉRATION D'IMAGES ==========
