@@ -440,16 +440,29 @@
                 <h2>💬 Messages WhatsApp</h2>
                 
                 <div id="messagesContainer" style="display: none;">
-                    <!-- Colonne de filtrage par localisation -->
+                    <!-- Colonne de filtrage par localisation et date -->
                     <div id="filterColumn" style="display: none; margin-bottom: 20px;">
-                        <div style="display: flex; align-items: center; gap: 15px; background: linear-gradient(135deg, #FDB913 0%, #FFCD3C 100%); padding: 15px; border-radius: 10px; box-shadow: 0 4px 15px rgba(253,185,19,0.3);">
-                            <label for="locationFilter" style="color: #D32F2F; font-weight: bold; font-size: 1.1em; white-space: nowrap;">
-                                📍 Filtrer par localisation :
-                            </label>
-                            <select id="locationFilter" onchange="filterMessages()" style="flex: 1; padding: 10px 15px; font-size: 1em; border: 2px solid #D32F2F; border-radius: 8px; background: white; color: #333; cursor: pointer; outline: none;">
-                                <option value="all">📍 Tous les messages</option>
-                            </select>
-                            <div id="filterCount" style="color: #D32F2F; font-weight: bold; white-space: nowrap;"></div>
+                        <div style="background: linear-gradient(135deg, #FDB913 0%, #FFCD3C 100%); padding: 15px; border-radius: 10px; box-shadow: 0 4px 15px rgba(253,185,19,0.3);">
+                            <!-- Ligne 1 : Filtre par localisation -->
+                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                                <label for="locationFilter" style="color: #D32F2F; font-weight: bold; font-size: 1.1em; white-space: nowrap;">
+                                    📍 Localisation :
+                                </label>
+                                <select id="locationFilter" onchange="filterMessages()" style="flex: 1; padding: 10px 15px; font-size: 1em; border: 2px solid #D32F2F; border-radius: 8px; background: white; color: #333; cursor: pointer; outline: none;">
+                                    <option value="all">📍 Toutes les localisations</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Ligne 2 : Filtre par date -->
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <label for="dateFilter" style="color: #D32F2F; font-weight: bold; font-size: 1.1em; white-space: nowrap;">
+                                    📅 Date :
+                                </label>
+                                <select id="dateFilter" onchange="filterMessages()" style="flex: 1; padding: 10px 15px; font-size: 1em; border: 2px solid #D32F2F; border-radius: 8px; background: white; color: #333; cursor: pointer; outline: none;">
+                                    <option value="all">📅 Toutes les dates</option>
+                                </select>
+                                <div id="filterCount" style="color: #D32F2F; font-weight: bold; white-space: nowrap;"></div>
+                            </div>
                         </div>
                     </div>
                     
@@ -635,9 +648,20 @@
             Object.keys(finalGrouped).forEach(key => {
                 const group = finalGrouped[key];
                 const message = createMessageWithPayments(group);
+                
+                // Récupérer la date depuis le premier élément du groupe
+                let dateValue = 'Sans date';
+                if (group.items && group.items.length > 0) {
+                    const firstItem = group.items[0];
+                    if (firstItem.date) dateValue = firstItem.date.toString().trim();
+                    else if (firstItem.Date) dateValue = firstItem.Date.toString().trim();
+                    else if (firstItem.DATE) dateValue = firstItem.DATE.toString().trim();
+                }
+                
                 generatedMessages[key] = {
                     client: group.client,
                     statut: group.statut,
+                    date: dateValue,
                     message: message
                 };
             });
@@ -879,7 +903,7 @@
             // Afficher le récapitulatif général
             let recapHTML = `
                 <div class="card" style="background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%); color: white; margin-bottom: 20px;">
-                    <h2 style="color: white; border-bottom: 3px solid #FDB913;">📊 RÉCAPITULATIF GÉNÉRAL</h2>
+                    <h2 style="color: #D32F2F; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); border-bottom: 3px solid #FDB913;">📊 RÉCAPITULATIF GÉNÉRAL</h2>
                     <div style="font-size: 1.2em; line-height: 2;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span>📋 Nombre de messages :</span>
@@ -905,11 +929,18 @@
 
             recapHTML += `
                         <div style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 3px solid white; font-size: 1.5em;">
-                            <span>🎯 TOTAL GÉNÉRAL :</span>
+                            <span style="color: #1a1a1a;">🎯 TOTAL GÉNÉRAL :</span>
                             <strong style="font-size: 1.4em;">${totalGeneralFormatted} Dh</strong>
                         </div>
                     </div>
                 </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn-small" onclick="copyRecapitulatif()" style="font-size: 1.1em; padding: 12px 30px;">
+                            📋 Copier le récapitulatif
+                        </button>
+                    </div>
+                </div>
+            </div>
             `;
 
             let html = recapHTML;
@@ -1020,29 +1051,52 @@
             return 'Autre';
         }
         
+        // Extraire la date d'un message
+        function getMessageDate(msg) {
+            // La date est maintenant stockée directement dans msg.date
+            if (msg.date) {
+                return msg.date.toString().trim();
+            }
+            return 'Sans date';
+        }
+        
         // Créer les options de la colonne de filtrage
         function populateLocationFilter() {
             const locations = {};
+            const dates = {};
             
-            // Compter les messages par localisation
+            // Compter les messages par localisation et par date
             Object.keys(generatedMessages).forEach(key => {
                 const msg = generatedMessages[key];
                 const location = getMessageLocation(msg);
+                const date = getMessageDate(msg);
+                
                 locations[location] = (locations[location] || 0) + 1;
+                dates[date] = (dates[date] || 0) + 1;
             });
             
-            // Remplir le select
-            const select = document.getElementById('locationFilter');
-            select.innerHTML = '<option value="all">📍 Tous les messages (' + Object.keys(generatedMessages).length + ')</option>';
+            // Remplir le select des localisations
+            const selectLocation = document.getElementById('locationFilter');
+            selectLocation.innerHTML = '<option value="all">📍 Toutes les localisations (' + Object.keys(generatedMessages).length + ')</option>';
             
-            // Trier par ordre alphabétique
             const sortedLocations = Object.entries(locations).sort((a, b) => a[0].localeCompare(b[0]));
-            
             sortedLocations.forEach(([location, count]) => {
                 const option = document.createElement('option');
                 option.value = location;
                 option.textContent = `📍 ${location} (${count})`;
-                select.appendChild(option);
+                selectLocation.appendChild(option);
+            });
+            
+            // Remplir le select des dates
+            const selectDate = document.getElementById('dateFilter');
+            selectDate.innerHTML = '<option value="all">📅 Toutes les dates (' + Object.keys(generatedMessages).length + ')</option>';
+            
+            const sortedDates = Object.entries(dates).sort((a, b) => a[0].localeCompare(b[0]));
+            sortedDates.forEach(([date, count]) => {
+                const option = document.createElement('option');
+                option.value = date;
+                option.textContent = `📅 ${date} (${count})`;
+                selectDate.appendChild(option);
             });
             
             // Afficher la colonne
@@ -1053,18 +1107,24 @@
         // Filtrer les messages selon la sélection
         function filterMessages() {
             const selectedLocation = document.getElementById('locationFilter').value;
+            const selectedDate = document.getElementById('dateFilter').value;
             
             // Calculer les totaux généraux (pour les messages filtrés)
             let totalGeneral = 0;
             let totalParPaiement = {};
             let nombreMessages = 0;
 
-            // Compter les messages qui correspondent au filtre
+            // Compter les messages qui correspondent aux filtres
             Object.keys(generatedMessages).forEach(key => {
                 const msg = generatedMessages[key];
                 const msgLocation = getMessageLocation(msg);
+                const msgDate = getMessageDate(msg);
                 
-                if (selectedLocation === 'all' || msgLocation === selectedLocation) {
+                // Vérifier si le message correspond aux deux filtres
+                const locationMatch = selectedLocation === 'all' || msgLocation === selectedLocation;
+                const dateMatch = selectedDate === 'all' || msgDate === selectedDate;
+                
+                if (locationMatch && dateMatch) {
                     nombreMessages++;
                     
                     // Extraire les totaux
@@ -1093,20 +1153,30 @@
             totalGeneral = Math.round(totalGeneral * 100) / 100;
             const totalGeneralFormatted = totalGeneral.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
+            // Créer le filtre actif pour le titre
+            let filtreActif = '';
+            if (selectedLocation !== 'all' && selectedDate !== 'all') {
+                filtreActif = ` - ${selectedLocation} - ${selectedDate}`;
+            } else if (selectedLocation !== 'all') {
+                filtreActif = ` - ${selectedLocation}`;
+            } else if (selectedDate !== 'all') {
+                filtreActif = ` - ${selectedDate}`;
+            }
+
             // Créer le HTML du récapitulatif
             let recapHTML = `
                 <div class="recap-card">
                     <div class="recap-content">
-                        <h2 style="color: white; margin: 0 0 15px 0; font-size: 1.8em;">📊 RÉCAPITULATIF ${selectedLocation !== 'all' ? ' - ' + selectedLocation : ''}</h2>
+                        <h2 style="color: #D32F2F; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin: 0 0 15px 0; font-size: 1.8em;">📊 RÉCAPITULATIF${filtreActif}</h2>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.2em;">
-                            <span>📝 Nombre de messages :</span>
-                            <strong>${nombreMessages}</strong>
+                            <span style="color: #1a1a1a;">📝 Nombre de messages :</span>
+                            <strong style="color: #1a1a1a;">${nombreMessages}</strong>
                         </div>
             `;
 
             if (Object.keys(totalParPaiement).length > 0) {
-                recapHTML += `<div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid white;">`;
-                recapHTML += `<div style="font-size: 1.3em; margin-bottom: 10px;">💰 TOTAUX PAR MODE DE PAIEMENT</div>`;
+                recapHTML += `<div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #1a1a1a;">`;
+                recapHTML += `<div style="font-size: 1.3em; margin-bottom: 10px; color: #1a1a1a;">💰 TOTAUX PAR MODE DE PAIEMENT</div>`;
                 
                 Object.keys(totalParPaiement).sort().forEach(typeP => {
                     const montant = Math.round(totalParPaiement[typeP] * 100) / 100;
@@ -1117,8 +1187,8 @@
                     
                     recapHTML += `
                         <div style="display: flex; justify-content: space-between; margin: 8px 0; font-size: 1.1em;">
-                            <span>${emoji} ${typeP} :</span>
-                            <strong>${montantFormatted} Dh</strong>
+                            <span style="color: #1a1a1a;">${emoji} ${typeP} :</span>
+                            <strong style="color: #1a1a1a;">${montantFormatted} Dh</strong>
                         </div>
                     `;
                 });
@@ -1126,10 +1196,15 @@
             }
 
             recapHTML += `
-                        <div style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 3px solid white; font-size: 1.5em;">
-                            <span>🎯 TOTAL GÉNÉRAL :</span>
-                            <strong style="font-size: 1.4em;">${totalGeneralFormatted} Dh</strong>
+                        <div style="display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 3px solid #1a1a1a; font-size: 1.5em;">
+                            <span style="color: #1a1a1a;">🎯 TOTAL GÉNÉRAL :</span>
+                            <strong style="font-size: 1.4em; color: #D32F2F;">${totalGeneralFormatted} Dh</strong>
                         </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn-small" onclick="copyRecapitulatif()" style="font-size: 1.1em; padding: 12px 30px;">
+                            📋 Copier le récapitulatif
+                        </button>
                     </div>
                 </div>
             `;
@@ -1140,11 +1215,15 @@
             Object.keys(generatedMessages).forEach(key => {
                 const msg = generatedMessages[key];
                 const msgLocation = getMessageLocation(msg);
+                const msgDate = getMessageDate(msg);
                 
-                if (selectedLocation === 'all' || msgLocation === selectedLocation) {
+                const locationMatch = selectedLocation === 'all' || msgLocation === selectedLocation;
+                const dateMatch = selectedDate === 'all' || msgDate === selectedDate;
+                
+                if (locationMatch && dateMatch) {
                     html += `
                         <div class="message-card">
-                            <h3>📋 ${msg.client} - 📍 ${msgLocation}</h3>
+                            <h3>📋 ${msg.client} - 📍 ${msgLocation} - 📅 ${msgDate}</h3>
                             <div class="message-content">${msg.message}</div>
                             <div class="message-actions-inline">
                                 <button class="btn-small" onclick="copyMessage('${key}')">📋 Copier</button>
@@ -1168,6 +1247,88 @@
         
         // ========== FIN DU FILTRAGE ==========
 
+
+
+        // Copier le récapitulatif
+        function copyRecapitulatif() {
+            const selectedLocation = document.getElementById('locationFilter').value;
+            const selectedDate = document.getElementById('dateFilter').value;
+            
+            let recapText = '📊 RÉCAPITULATIF';
+            if (selectedLocation !== 'all' && selectedDate !== 'all') {
+                recapText += ` - ${selectedLocation} - ${selectedDate}`;
+            } else if (selectedLocation !== 'all') {
+                recapText += ` - ${selectedLocation}`;
+            } else if (selectedDate !== 'all') {
+                recapText += ` - ${selectedDate}`;
+            }
+            recapText += '\n' + '═'.repeat(40) + '\n\n';
+            
+            // Compter les messages et calculer les totaux
+            let nombreMessages = 0;
+            let totalGeneral = 0;
+            let totalParPaiement = {};
+            
+            Object.keys(generatedMessages).forEach(key => {
+                const msg = generatedMessages[key];
+                const msgLocation = getMessageLocation(msg);
+                const msgDate = getMessageDate(msg);
+                
+                const locationMatch = selectedLocation === 'all' || msgLocation === selectedLocation;
+                const dateMatch = selectedDate === 'all' || msgDate === selectedDate;
+                
+                if (locationMatch && dateMatch) {
+                    nombreMessages++;
+                    
+                    const lines = msg.message.split('\n');
+                    lines.forEach(line => {
+                        const match = line.match(/(\d+(?:\.\d+)?)\s+.+\s+×\s+(\d+(?:\.\d+)?)\s+=\s+(\d+(?:\.\d+)?)Dh/);
+                        if (match) {
+                            totalGeneral += parseFloat(match[3]);
+                        }
+                        
+                        const matchTotal = line.match(/✅ Total (.+?) : (\d+(?:\.\d+)?)Dh/);
+                        if (matchTotal) {
+                            const typeP = matchTotal[1];
+                            const montant = parseFloat(matchTotal[2]);
+                            totalParPaiement[typeP] = (totalParPaiement[typeP] || 0) + montant;
+                        }
+                    });
+                }
+            });
+            
+            recapText += `📝 Nombre de messages : ${nombreMessages}\n\n`;
+            
+            if (Object.keys(totalParPaiement).length > 0) {
+                recapText += '💰 TOTAUX PAR MODE DE PAIEMENT\n';
+                recapText += '─'.repeat(40) + '\n';
+                
+                Object.keys(totalParPaiement).sort().forEach(typeP => {
+                    const montant = Math.round(totalParPaiement[typeP] * 100) / 100;
+                    const montantFormatted = montant.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    let emoji = '💵';
+                    if (typeP.toLowerCase().includes('crédit')) emoji = '💳';
+                    else if (typeP.toLowerCase().includes('inconnu')) emoji = '❓';
+                    
+                    recapText += `${emoji} ${typeP} : ${montantFormatted} Dh\n`;
+                });
+                recapText += '\n';
+            }
+            
+            totalGeneral = Math.round(totalGeneral * 100) / 100;
+            const totalGeneralFormatted = totalGeneral.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            recapText += '═'.repeat(40) + '\n';
+            recapText += `🎯 TOTAL GÉNÉRAL : ${totalGeneralFormatted} Dh\n`;
+            recapText += '═'.repeat(40);
+            
+            navigator.clipboard.writeText(recapText).then(() => {
+                showToast('✅ Récapitulatif copié !');
+            }).catch(err => {
+                console.error('Erreur:', err);
+                alert('❌ Erreur lors de la copie');
+            });
+        }
 </script>
 </body>
 </html>
