@@ -502,6 +502,32 @@
             }
         }
 
+        // Convertir un numéro de série Excel en date
+        function excelDateToJSDate(excelDate) {
+            // Si c'est déjà une string de date, retourner telle quelle
+            if (typeof excelDate === 'string') {
+                return excelDate;
+            }
+            
+            // Si c'est un numéro de série Excel
+            if (typeof excelDate === 'number' && excelDate > 0) {
+                // Excel commence le 1er janvier 1900 (en tenant compte du bug 1900)
+                const epoch = new Date(1899, 11, 30); // 30 décembre 1899
+                const days = Math.floor(excelDate);
+                const date = new Date(epoch.getTime() + days * 86400000);
+                
+                // Formater la date en DD/MM/YYYY
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                
+                return `${day}/${month}/${year}`;
+            }
+            
+            return 'Sans date';
+        }
+
+
         // Gestion du drag & drop
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
@@ -536,6 +562,18 @@
                 const workbook = XLSX.read(data, {type: 'array'});
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 excelData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                // Convertir les dates Excel en dates lisibles
+                excelData = excelData.map(row => {
+                    const newRow = {...row};
+                    if (newRow.Date || newRow.date || newRow.DATE) {
+                        const dateValue = newRow.Date || newRow.date || newRow.DATE;
+                        newRow.Date = excelDateToJSDate(dateValue);
+                        newRow.date = excelDateToJSDate(dateValue);
+                        newRow.DATE = excelDateToJSDate(dateValue);
+                    }
+                    return newRow;
+                });
                 
                 displayPreview();
                 document.getElementById('settingsPanel').style.display = 'block';
@@ -1366,40 +1404,67 @@
         // Sauvegarder les messages dans localStorage
         function saveToLocalStorage() {
             try {
+                // Vérifier qu'il y a des messages à sauvegarder
+                if (!generatedMessages || Object.keys(generatedMessages).length === 0) {
+                    console.log('⚠️ Aucun message à sauvegarder');
+                    return;
+                }
+                
                 const dataToSave = {
                     messages: generatedMessages,
                     timestamp: new Date().toISOString()
                 };
+                
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
                 localStorage.setItem(STORAGE_DATE_KEY, new Date().toLocaleString('fr-FR'));
                 updateLastSaveInfo();
-                console.log('✅ Données sauvegardées localement');
+                
+                console.log('✅ Données sauvegardées localement:', Object.keys(generatedMessages).length, 'messages');
             } catch (error) {
                 console.error('❌ Erreur de sauvegarde:', error);
-                alert('Erreur lors de la sauvegarde locale');
+                console.error('Détails:', error.message);
+                alert('Erreur lors de la sauvegarde locale: ' + error.message);
             }
         }
         
         // Charger les messages depuis localStorage
         function loadFromLocalStorage() {
             try {
+                console.log('🔍 Tentative de chargement depuis localStorage...');
+                
                 const savedData = localStorage.getItem(STORAGE_KEY);
-                if (savedData) {
-                    const data = JSON.parse(savedData);
-                    generatedMessages = data.messages || {};
+                if (!savedData) {
+                    console.log('📝 Aucune donnée sauvegardée trouvée');
+                    return;
+                }
+                
+                const data = JSON.parse(savedData);
+                generatedMessages = data.messages || {};
+                
+                const messageCount = Object.keys(generatedMessages).length;
+                console.log('📂 Messages trouvés:', messageCount);
+                
+                if (messageCount > 0) {
+                    console.log('✅ Données chargées depuis localStorage');
+                    document.getElementById('emptyState').style.display = 'none';
+                    document.getElementById('messagesContainer').style.display = 'block';
                     
-                    if (Object.keys(generatedMessages).length > 0) {
-                        console.log('✅ Données chargées depuis localStorage');
-                        document.getElementById('emptyState').style.display = 'none';
-                        document.getElementById('messagesContainer').style.display = 'block';
-                        displayMessages();
+                    // Afficher les messages
+                    displayMessages();
+                    
+                    // Remplir le filtre de localisation
+                    if (typeof populateLocationFilter === 'function') {
                         populateLocationFilter();
-                        updateLastSaveInfo();
-                        showToast('📂 Données restaurées depuis la sauvegarde locale');
                     }
+                    
+                    updateLastSaveInfo();
+                    showToast('📂 Données restaurées depuis la sauvegarde locale');
+                } else {
+                    console.log('⚠️ Aucun message dans les données sauvegardées');
                 }
             } catch (error) {
                 console.error('❌ Erreur de chargement:', error);
+                console.error('Détails:', error.message);
             }
         }
         
