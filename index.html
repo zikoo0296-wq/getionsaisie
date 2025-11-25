@@ -374,6 +374,7 @@
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -468,6 +469,22 @@
                                     <option value="all">📅 Toutes les dates</option>
                                 </select>
                                 <div id="filterCount" style="color: #D32F2F; font-weight: bold; white-space: nowrap;"></div>
+                            </div>
+                            
+                            <!-- Ligne 3 : Filtre par mois et année -->
+                            <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+                                <label for="monthFilter" style="color: #D32F2F; font-weight: bold; font-size: 1.1em; white-space: nowrap;">
+                                    📆 Mois :
+                                </label>
+                                <select id="monthFilter" onchange="filterMessages()" style="flex: 1; padding: 10px 15px; font-size: 1em; border: 2px solid #D32F2F; border-radius: 8px; background: white; color: #333; cursor: pointer; outline: none;">
+                                    <option value="all">📆 Tous les mois</option>
+                                </select>
+                                <label for="yearFilter" style="color: #D32F2F; font-weight: bold; font-size: 1.1em; white-space: nowrap;">
+                                    📅 Année :
+                                </label>
+                                <select id="yearFilter" onchange="filterMessages()" style="flex: 1; padding: 10px 15px; font-size: 1em; border: 2px solid #D32F2F; border-radius: 8px; background: white; color: #333; cursor: pointer; outline: none;">
+                                    <option value="all">📅 Toutes les années</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -1168,8 +1185,11 @@
         function populateLocationFilter() {
             const locations = {};
             const dates = {};
+            const months = {};
+            const years = {};
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
             
-            // Compter les messages par localisation et par date
+            // Compter les messages par localisation, date, mois et année
             Object.keys(generatedMessages).forEach(key => {
                 const msg = generatedMessages[key];
                 const location = getMessageLocation(msg);
@@ -1177,6 +1197,22 @@
                 
                 locations[location] = (locations[location] || 0) + 1;
                 dates[date] = (dates[date] || 0) + 1;
+                
+                // Extraire mois et année de la date (format DD/MM/YYYY)
+                if (date && date !== 'Sans date') {
+                    const parts = date.split('/');
+                    if (parts.length === 3) {
+                        const monthNum = parseInt(parts[1], 10);
+                        const year = parts[2];
+                        if (monthNum >= 1 && monthNum <= 12) {
+                            const monthKey = monthNum.toString().padStart(2, '0');
+                            months[monthKey] = (months[monthKey] || 0) + 1;
+                        }
+                        if (year) {
+                            years[year] = (years[year] || 0) + 1;
+                        }
+                    }
+                }
             });
             
             // Remplir le select des localisations
@@ -1203,6 +1239,31 @@
                 selectDate.appendChild(option);
             });
             
+            // Remplir le select des mois
+            const selectMonth = document.getElementById('monthFilter');
+            selectMonth.innerHTML = '<option value="all">📆 Tous les mois</option>';
+            
+            const sortedMonths = Object.entries(months).sort((a, b) => a[0].localeCompare(b[0]));
+            sortedMonths.forEach(([monthKey, count]) => {
+                const option = document.createElement('option');
+                option.value = monthKey;
+                const monthIndex = parseInt(monthKey, 10) - 1;
+                option.textContent = `📆 ${monthNames[monthIndex]} (${count})`;
+                selectMonth.appendChild(option);
+            });
+            
+            // Remplir le select des années
+            const selectYear = document.getElementById('yearFilter');
+            selectYear.innerHTML = '<option value="all">📅 Toutes les années</option>';
+            
+            const sortedYears = Object.entries(years).sort((a, b) => b[0].localeCompare(a[0])); // Tri décroissant
+            sortedYears.forEach(([year, count]) => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = `📅 ${year} (${count})`;
+                selectYear.appendChild(option);
+            });
+            
             // Afficher la colonne
             document.getElementById('filterColumn').style.display = 'block';
             updateFilterCount(Object.keys(generatedMessages).length);
@@ -1212,6 +1273,8 @@
         function filterMessages() {
             const selectedLocation = document.getElementById('locationFilter').value;
             const selectedDate = document.getElementById('dateFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const selectedYear = document.getElementById('yearFilter').value;
             
             // Calculer les totaux généraux (pour les messages filtrés)
             let totalGeneral = 0;
@@ -1224,11 +1287,24 @@
                 const msgLocation = getMessageLocation(msg);
                 const msgDate = getMessageDate(msg);
                 
-                // Vérifier si le message correspond aux deux filtres
+                // Extraire mois et année de la date du message
+                let msgMonth = null;
+                let msgYear = null;
+                if (msgDate && msgDate !== 'Sans date') {
+                    const parts = msgDate.split('/');
+                    if (parts.length === 3) {
+                        msgMonth = parts[1]; // MM
+                        msgYear = parts[2];  // YYYY
+                    }
+                }
+                
+                // Vérifier si le message correspond à tous les filtres
                 const locationMatch = selectedLocation === 'all' || msgLocation === selectedLocation;
                 const dateMatch = selectedDate === 'all' || msgDate === selectedDate;
+                const monthMatch = selectedMonth === 'all' || msgMonth === selectedMonth;
+                const yearMatch = selectedYear === 'all' || msgYear === selectedYear;
                 
-                if (locationMatch && dateMatch) {
+                if (locationMatch && dateMatch && monthMatch && yearMatch) {
                     nombreMessages++;
                     
                     // Extraire les totaux
@@ -1258,14 +1334,14 @@
             const totalGeneralFormatted = totalGeneral.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             // Créer le filtre actif pour le titre
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
             let filtreActif = '';
-            if (selectedLocation !== 'all' && selectedDate !== 'all') {
-                filtreActif = ` - ${selectedLocation} - ${selectedDate}`;
-            } else if (selectedLocation !== 'all') {
-                filtreActif = ` - ${selectedLocation}`;
-            } else if (selectedDate !== 'all') {
-                filtreActif = ` - ${selectedDate}`;
-            }
+            const filtres = [];
+            if (selectedLocation !== 'all') filtres.push(selectedLocation);
+            if (selectedDate !== 'all') filtres.push(selectedDate);
+            if (selectedMonth !== 'all') filtres.push(monthNames[parseInt(selectedMonth, 10) - 1]);
+            if (selectedYear !== 'all') filtres.push(selectedYear);
+            if (filtres.length > 0) filtreActif = ` - ${filtres.join(' - ')}`;
 
             // Créer le HTML du récapitulatif
             let recapHTML = `
@@ -1321,10 +1397,23 @@
                 const msgLocation = getMessageLocation(msg);
                 const msgDate = getMessageDate(msg);
                 
+                // Extraire mois et année de la date du message
+                let msgMonth = null;
+                let msgYear = null;
+                if (msgDate && msgDate !== 'Sans date') {
+                    const parts = msgDate.split('/');
+                    if (parts.length === 3) {
+                        msgMonth = parts[1];
+                        msgYear = parts[2];
+                    }
+                }
+                
                 const locationMatch = selectedLocation === 'all' || msgLocation === selectedLocation;
                 const dateMatch = selectedDate === 'all' || msgDate === selectedDate;
+                const monthMatch = selectedMonth === 'all' || msgMonth === selectedMonth;
+                const yearMatch = selectedYear === 'all' || msgYear === selectedYear;
                 
-                if (locationMatch && dateMatch) {
+                if (locationMatch && dateMatch && monthMatch && yearMatch) {
                     html += `
                         <div class="message-card">
                             <h3>📋 ${msg.client} - 📍 ${msgLocation} - 📅 ${msgDate}</h3>
@@ -1365,15 +1454,17 @@
         function copyRecapitulatif() {
             const selectedLocation = document.getElementById('locationFilter').value;
             const selectedDate = document.getElementById('dateFilter').value;
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const selectedYear = document.getElementById('yearFilter').value;
             
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
             let recapText = '📊 RÉCAPITULATIF';
-            if (selectedLocation !== 'all' && selectedDate !== 'all') {
-                recapText += ` - ${selectedLocation} - ${selectedDate}`;
-            } else if (selectedLocation !== 'all') {
-                recapText += ` - ${selectedLocation}`;
-            } else if (selectedDate !== 'all') {
-                recapText += ` - ${selectedDate}`;
-            }
+            const filtres = [];
+            if (selectedLocation !== 'all') filtres.push(selectedLocation);
+            if (selectedDate !== 'all') filtres.push(selectedDate);
+            if (selectedMonth !== 'all') filtres.push(monthNames[parseInt(selectedMonth, 10) - 1]);
+            if (selectedYear !== 'all') filtres.push(selectedYear);
+            if (filtres.length > 0) recapText += ` - ${filtres.join(' - ')}`;
             recapText += '\n' + '═'.repeat(40) + '\n\n';
             
             // Compter les messages et calculer les totaux
@@ -1386,10 +1477,23 @@
                 const msgLocation = getMessageLocation(msg);
                 const msgDate = getMessageDate(msg);
                 
+                // Extraire mois et année
+                let msgMonth = null;
+                let msgYear = null;
+                if (msgDate && msgDate !== 'Sans date') {
+                    const parts = msgDate.split('/');
+                    if (parts.length === 3) {
+                        msgMonth = parts[1];
+                        msgYear = parts[2];
+                    }
+                }
+                
                 const locationMatch = selectedLocation === 'all' || msgLocation === selectedLocation;
                 const dateMatch = selectedDate === 'all' || msgDate === selectedDate;
+                const monthMatch = selectedMonth === 'all' || msgMonth === selectedMonth;
+                const yearMatch = selectedYear === 'all' || msgYear === selectedYear;
                 
-                if (locationMatch && dateMatch) {
+                if (locationMatch && dateMatch && monthMatch && yearMatch) {
                     nombreMessages++;
                     
                     const lines = msg.message.split('\n');
@@ -1562,7 +1666,7 @@
 
         // ========== SYSTÈME DE GÉNÉRATION D'IMAGES ==========
         
-        // Convertir lien Google Drive en lien direct (avec proxy CORS)
+        // Convertir lien Google Drive en lien direct
         function convertGDriveLink(link) {
             try {
                 let fileId = '';
@@ -1571,8 +1675,14 @@
                 } else if (link.includes('/d/')) {
                     fileId = link.split('/d/')[1].split('/')[0];
                 }
-                // Utiliser le lien thumbnail qui fonctionne sans CORS
-                return `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+                
+                if (!fileId) {
+                    console.error('❌ Impossible d\'extraire l\'ID du fichier:', link);
+                    return link;
+                }
+                
+                // Format qui fonctionne le mieux pour afficher les images Google Drive
+                return `https://lh3.googleusercontent.com/d/${fileId}=w800`;
             } catch (e) {
                 console.error('❌ Erreur conversion lien:', e);
                 return link;
@@ -1703,15 +1813,19 @@
             const gridDiv = document.createElement('div');
             gridDiv.style.cssText = 'margin-bottom: 30px; padding: 20px; background: white; border: 2px solid #ddd; border-radius: 10px;';
             
+            const gridId = `grid-capture-${gridNumber}-${Date.now()}`;
+            
             let gridHTML = `
-                <h3 style="color: #667eea; margin-bottom: 15px;">Grille ${gridNumber} - ${clientName}</h3>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                <div id="${gridId}" style="padding: 15px; background: white;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">Grille ${gridNumber} - ${clientName}</h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
             `;
             
             products.forEach((product, index) => {
                 gridHTML += `
                     <div style="text-align: center; padding: 10px; background: #f9f9f9; border-radius: 8px;">
                         <img src="${product.link}" 
+                             crossorigin="anonymous"
                              style="width: 100%; height: 250px; object-fit: contain; border-radius: 8px; background: white; margin-bottom: 10px;"
                              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22250%22><rect width=%22300%22 height=%22250%22 fill=%22%23e0e0e0%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2240%22>📷</text></svg>'">
                         <div style="font-weight: bold; color: #333; font-size: 14px; margin-bottom: 5px; min-height: 40px; display: flex; align-items: center; justify-content: center;">
@@ -1725,14 +1839,100 @@
             });
             
             gridHTML += `
+                    </div>
                 </div>
-                <div style="text-align: center; padding: 15px; background: #f0f0f0; border-radius: 8px; color: #666;">
-                    📱 Faites une capture d'écran pour envoyer cette grille
+                <div style="text-align: center; padding: 15px; background: #f0f0f0; border-radius: 8px;">
+                    <button onclick="captureGrid('${gridId}', '${clientName}', ${gridNumber})" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; margin-right: 10px;">
+                        📸 Générer l'image
+                    </button>
+                    <span style="color: #666;">Cliquez pour copier automatiquement cette grille</span>
                 </div>
             `;
             
             gridDiv.innerHTML = gridHTML;
             container.appendChild(gridDiv);
+            
+            // Convertir les images en base64 après ajout au DOM
+            setTimeout(() => convertImagesToBase64(gridId), 500);
+        }
+        
+        // Convertir les images Google Drive en base64 pour éviter les problèmes CORS
+        async function convertImagesToBase64(gridId) {
+            const gridElement = document.getElementById(gridId);
+            if (!gridElement) return;
+            
+            const images = gridElement.querySelectorAll('img');
+            
+            for (const img of images) {
+                if (img.src.includes('drive.google.com') || img.src.includes('googleusercontent.com')) {
+                    try {
+                        const response = await fetch(img.src, { mode: 'cors' });
+                        const blob = await response.blob();
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            img.src = reader.result;
+                        };
+                        reader.readAsDataURL(blob);
+                    } catch (error) {
+                        console.log('Image CORS bloquée, utilisation du proxy...');
+                        // Essayer avec un proxy CORS
+                        try {
+                            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(img.src)}`;
+                            const response = await fetch(proxyUrl);
+                            const blob = await response.blob();
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                img.src = reader.result;
+                            };
+                            reader.readAsDataURL(blob);
+                        } catch (e) {
+                            console.log('Proxy aussi bloqué pour:', img.src);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Fonction pour capturer une grille et la copier dans le presse-papier
+        async function captureGrid(gridId, clientName, gridNumber) {
+            const gridElement = document.getElementById(gridId);
+            if (!gridElement) {
+                alert('❌ Grille introuvable');
+                return;
+            }
+            
+            try {
+                showToast('📸 Capture en cours...');
+                
+                // Attendre un peu pour les images
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Capturer la grille avec html2canvas
+                const canvas = await html2canvas(gridElement, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false
+                });
+                
+                // Copier dans le presse-papier
+                canvas.toBlob(async (blob) => {
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        showToast(`✅ Image copiée ! Collez-la dans WhatsApp (Ctrl+V)`);
+                    } catch (clipboardError) {
+                        console.error('Erreur clipboard:', clipboardError);
+                        showToast(`❌ Erreur de copie. Faites une capture d'écran manuelle.`);
+                    }
+                }, 'image/png');
+                
+            } catch (error) {
+                console.error('Erreur capture:', error);
+                alert('❌ Erreur lors de la capture. Essayez de faire une capture d\'écran manuelle.');
+            }
         }
         
         // Afficher les liens des images d'un message
