@@ -1670,9 +1670,13 @@
         function convertGDriveLink(link) {
             try {
                 let fileId = '';
+                
+                // Extraire l'ID selon le format du lien
                 if (link.includes('id=')) {
+                    // Format: open?id=xxx ou uc?id=xxx
                     fileId = link.split('id=')[1].split('&')[0];
                 } else if (link.includes('/d/')) {
+                    // Format: /d/xxx/view
                     fileId = link.split('/d/')[1].split('/')[0];
                 }
                 
@@ -1681,8 +1685,10 @@
                     return link;
                 }
                 
-                // Format qui fonctionne le mieux pour afficher les images Google Drive
-                return `https://lh3.googleusercontent.com/d/${fileId}=w800`;
+                console.log('🔗 ID extrait:', fileId);
+                
+                // Format lh3.googleusercontent - le plus fiable pour les images publiques
+                return `https://lh3.googleusercontent.com/d/${fileId}`;
             } catch (e) {
                 console.error('❌ Erreur conversion lien:', e);
                 return link;
@@ -1776,28 +1782,22 @@
         
         // Créer les grilles d'images (HTML au lieu de Canvas pour éviter CORS)
         async function createImageGrids(productImages, clientName) {
-            const GRID_SIZE = 3;
-            const MAX_PER_GRID = 9;
-            
-            const grids = [];
-            for (let i = 0; i < productImages.length; i += MAX_PER_GRID) {
-                grids.push(productImages.slice(i, i + MAX_PER_GRID));
-            }
+            // Une seule grille avec tous les produits
+            const grids = [productImages];
             
             let container = document.getElementById('imageGridsContainer');
             if (!container) {
                 container = document.createElement('div');
                 container.id = 'imageGridsContainer';
-                container.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; max-width: 90vw; max-height: 90vh; overflow-y: auto;';
+                container.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 10000; max-width: 95vw; max-height: 95vh; overflow-y: auto;';
                 document.body.appendChild(container);
             }
             
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0; color: #333;">📸 Images pour ${clientName}</h2>
+                    <h2 style="margin: 0; color: #333;">📸 Images pour ${clientName} (${productImages.length} produits)</h2>
                     <button onclick="document.getElementById('imageGridsContainer').remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px;">✕ Fermer</button>
                 </div>
-                <p style="color: #666; margin-bottom: 20px;">📱 Faites une capture d'écran de cette grille pour l'envoyer sur WhatsApp</p>
                 <div id="gridsContent"></div>
             `;
             
@@ -1815,23 +1815,47 @@
             
             const gridId = `grid-capture-${gridNumber}-${Date.now()}`;
             
+            // Calculer le nombre de colonnes selon le nombre de produits
+            let columns = 3;
+            let imgHeight = 200;
+            const count = products.length;
+            
+            if (count <= 4) {
+                columns = 2;
+                imgHeight = 250;
+            } else if (count <= 9) {
+                columns = 3;
+                imgHeight = 200;
+            } else if (count <= 16) {
+                columns = 4;
+                imgHeight = 180;
+            } else if (count <= 25) {
+                columns = 5;
+                imgHeight = 150;
+            } else if (count <= 36) {
+                columns = 6;
+                imgHeight = 130;
+            } else {
+                columns = 7;
+                imgHeight = 110;
+            }
+            
             let gridHTML = `
                 <div id="${gridId}" style="padding: 15px; background: white;">
                     <h3 style="color: #667eea; margin-bottom: 15px;">Grille ${gridNumber} - ${clientName}</h3>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+                    <div style="display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: 10px; margin-bottom: 15px;">
             `;
             
             products.forEach((product, index) => {
                 gridHTML += `
-                    <div style="text-align: center; padding: 10px; background: #f9f9f9; border-radius: 8px;">
+                    <div style="text-align: center; padding: 8px; background: #f9f9f9; border-radius: 8px;">
                         <img src="${product.link}" 
-                             crossorigin="anonymous"
-                             style="width: 100%; height: 250px; object-fit: contain; border-radius: 8px; background: white; margin-bottom: 10px;"
-                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22250%22><rect width=%22300%22 height=%22250%22 fill=%22%23e0e0e0%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2240%22>📷</text></svg>'">
-                        <div style="font-weight: bold; color: #333; font-size: 14px; margin-bottom: 5px; min-height: 40px; display: flex; align-items: center; justify-content: center;">
-                            ${product.name.length > 30 ? product.name.substring(0, 27) + '...' : product.name}
+                             style="width: 100%; height: ${imgHeight}px; object-fit: contain; border-radius: 8px; background: white; margin-bottom: 8px;"
+                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22150%22><rect width=%22200%22 height=%22150%22 fill=%22%23e0e0e0%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2230%22>📷</text></svg>'">
+                        <div style="font-weight: bold; color: #333; font-size: ${count > 16 ? '11px' : '13px'}; margin-bottom: 4px; min-height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1.2;">
+                            ${product.name.length > 25 ? product.name.substring(0, 22) + '...' : product.name}
                         </div>
-                        <div style="color: #667eea; font-weight: bold; font-size: 16px;">
+                        <div style="color: #667eea; font-weight: bold; font-size: ${count > 16 ? '12px' : '14px'};">
                             Qté: ${product.quantity}
                         </div>
                     </div>
@@ -1851,46 +1875,6 @@
             
             gridDiv.innerHTML = gridHTML;
             container.appendChild(gridDiv);
-            
-            // Convertir les images en base64 après ajout au DOM
-            setTimeout(() => convertImagesToBase64(gridId), 500);
-        }
-        
-        // Convertir les images Google Drive en base64 pour éviter les problèmes CORS
-        async function convertImagesToBase64(gridId) {
-            const gridElement = document.getElementById(gridId);
-            if (!gridElement) return;
-            
-            const images = gridElement.querySelectorAll('img');
-            
-            for (const img of images) {
-                if (img.src.includes('drive.google.com') || img.src.includes('googleusercontent.com')) {
-                    try {
-                        const response = await fetch(img.src, { mode: 'cors' });
-                        const blob = await response.blob();
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                            img.src = reader.result;
-                        };
-                        reader.readAsDataURL(blob);
-                    } catch (error) {
-                        console.log('Image CORS bloquée, utilisation du proxy...');
-                        // Essayer avec un proxy CORS
-                        try {
-                            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(img.src)}`;
-                            const response = await fetch(proxyUrl);
-                            const blob = await response.blob();
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                img.src = reader.result;
-                            };
-                            reader.readAsDataURL(blob);
-                        } catch (e) {
-                            console.log('Proxy aussi bloqué pour:', img.src);
-                        }
-                    }
-                }
-            }
         }
         
         // Fonction pour capturer une grille et la copier dans le presse-papier
