@@ -1750,6 +1750,7 @@
             const productImages = [];
             const notFound = [];
             
+            // Inclure TOUS les produits, même sans image
             for (const product of products) {
                 const productNameLower = product.name.toLowerCase().trim();
                 const imageLink = productsList[productNameLower];
@@ -1759,21 +1760,28 @@
                     productImages.push({
                         name: product.name,
                         link: convertGDriveLink(imageLink),
-                        quantity: product.quantity
+                        quantity: product.quantity,
+                        hasImage: true
                     });
                 } else {
-                    console.log(`  ❌ Image NON trouvée pour "${product.name}" (clé: "${productNameLower}")`);
+                    console.log(`  ⚠️ Image NON trouvée pour "${product.name}" - ajout placeholder`);
                     notFound.push(product.name);
+                    // Ajouter avec placeholder pour permettre l'ajout manuel
+                    productImages.push({
+                        name: product.name,
+                        link: '', // Vide - sera affiché comme placeholder
+                        quantity: product.quantity,
+                        hasImage: false
+                    });
                 }
             }
             
             console.log('📊 Résultat:');
-            console.log(`  ✅ Images trouvées: ${productImages.length}`);
-            console.log(`  ❌ Images manquantes: ${notFound.length}`);
+            console.log(`  ✅ Images trouvées: ${productImages.length - notFound.length}`);
+            console.log(`  ⚠️ Images manquantes: ${notFound.length}`);
             
-            if (productImages.length === 0) {
-                alert(`❌ Aucune image trouvée pour les produits de ce message.\n\nProduits recherchés:\n${notFound.join('\n')}`);
-                return;
+            if (notFound.length > 0) {
+                showToast(`⚠️ ${notFound.length} produit(s) sans image - vous pouvez les ajouter manuellement`);
             }
             
             console.log('🎨 Création des grilles...');
@@ -1785,6 +1793,10 @@
             // Une seule grille avec tous les produits
             const grids = [productImages];
             
+            // Stocker les produits pour l'ajout manuel
+            window.currentGridProducts = productImages;
+            window.currentClientName = clientName;
+            
             let container = document.getElementById('imageGridsContainer');
             if (!container) {
                 container = document.createElement('div');
@@ -1793,11 +1805,31 @@
                 document.body.appendChild(container);
             }
             
+            // Trouver les produits sans image
+            const productsWithoutImage = productImages.filter(p => !p.link || p.link.includes('data:image/svg'));
+            const productsWithoutImageNames = productsWithoutImage.map(p => p.name);
+            
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="margin: 0; color: #333;">📸 Images pour ${clientName} (${productImages.length} produits)</h2>
                     <button onclick="document.getElementById('imageGridsContainer').remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px;">✕ Fermer</button>
                 </div>
+                
+                <!-- Bouton Ajouter Photo -->
+                <div style="margin-bottom: 20px; padding: 15px; background: #e8f5e9; border-radius: 10px; border: 2px dashed #4caf50;">
+                    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <button onclick="document.getElementById('addPhotoInput').click()" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold;">
+                            ➕ Ajouter photo
+                        </button>
+                        <select id="productSelect" style="padding: 12px 15px; border: 2px solid #4caf50; border-radius: 8px; font-size: 14px; min-width: 250px;">
+                            <option value="">-- Sélectionner un produit --</option>
+                            ${productImages.map((p, i) => `<option value="${i}">${p.name} (Qté: ${p.quantity})</option>`).join('')}
+                        </select>
+                        <input type="file" id="addPhotoInput" accept="image/*" style="display: none;" onchange="addManualPhoto(this)">
+                        <span style="color: #666; font-size: 14px;">📌 Sélectionnez le produit puis ajoutez sa photo</span>
+                    </div>
+                </div>
+                
                 <div id="gridsContent"></div>
             `;
             
@@ -1806,6 +1838,75 @@
             for (let gridIndex = 0; gridIndex < grids.length; gridIndex++) {
                 createSingleGridHTML(grids[gridIndex], gridIndex + 1, gridsContent, clientName);
             }
+        }
+        
+        // Ajouter une photo manuellement
+        function addManualPhoto(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const productIndex = document.getElementById('productSelect').value;
+            if (productIndex === '') {
+                alert('⚠️ Veuillez d\'abord sélectionner un produit dans la liste');
+                input.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                const index = parseInt(productIndex);
+                
+                // Mettre à jour l'image du produit
+                window.currentGridProducts[index].link = base64Image;
+                
+                // Rafraîchir la grille
+                const gridsContent = document.getElementById('gridsContent');
+                gridsContent.innerHTML = '';
+                createSingleGridHTML(window.currentGridProducts, 1, gridsContent, window.currentClientName);
+                
+                showToast(`✅ Photo ajoutée pour: ${window.currentGridProducts[index].name}`);
+                
+                // Réinitialiser
+                input.value = '';
+                document.getElementById('productSelect').value = '';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Sélectionner un produit et ouvrir le dialogue d'ajout de photo
+        function selectProductAndAddPhoto(productIndex) {
+            // Mettre à jour le select
+            document.getElementById('productSelect').value = productIndex;
+            
+            // Créer un input file temporaire
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function() {
+                const file = this.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result;
+                    
+                    // Mettre à jour l'image du produit
+                    window.currentGridProducts[productIndex].link = base64Image;
+                    
+                    // Rafraîchir la grille
+                    const gridsContent = document.getElementById('gridsContent');
+                    gridsContent.innerHTML = '';
+                    createSingleGridHTML(window.currentGridProducts, 1, gridsContent, window.currentClientName);
+                    
+                    showToast(`✅ Photo ajoutée pour: ${window.currentGridProducts[productIndex].name}`);
+                    
+                    // Réinitialiser le select
+                    document.getElementById('productSelect').value = '';
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
         }
         
         // Créer une seule grille HTML
@@ -1847,19 +1948,40 @@
             `;
             
             products.forEach((product, index) => {
-                gridHTML += `
-                    <div style="text-align: center; padding: 8px; background: #f9f9f9; border-radius: 8px;">
-                        <img src="${product.link}" 
-                             style="width: 100%; height: ${imgHeight}px; object-fit: contain; border-radius: 8px; background: white; margin-bottom: 8px;"
-                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22150%22><rect width=%22200%22 height=%22150%22 fill=%22%23e0e0e0%22/><text x=%2250%%22 y=%2250%%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2230%22>📷</text></svg>'">
-                        <div style="font-weight: bold; color: #333; font-size: ${count > 16 ? '11px' : '13px'}; margin-bottom: 4px; min-height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1.2;">
-                            ${product.name.length > 25 ? product.name.substring(0, 22) + '...' : product.name}
+                const hasImage = product.link && !product.link.includes('data:image/svg') && product.link.trim() !== '';
+                const borderStyle = hasImage ? 'border: 1px solid #ddd;' : 'border: 2px dashed #ff9800;';
+                const bgColor = hasImage ? '#f9f9f9' : '#fff8e1';
+                
+                if (hasImage) {
+                    gridHTML += `
+                        <div style="text-align: center; padding: 8px; background: ${bgColor}; border-radius: 8px; ${borderStyle}">
+                            <img src="${product.link}" 
+                                 style="width: 100%; height: ${imgHeight}px; object-fit: contain; border-radius: 8px; background: white; margin-bottom: 8px;"
+                                 onerror="this.parentElement.innerHTML = '<div style=\\'width: 100%; height: ${imgHeight}px; display: flex; align-items: center; justify-content: center; background: #ffe0b2; border-radius: 8px; margin-bottom: 8px; cursor: pointer;\\' onclick=\\'selectProductAndAddPhoto(${index})\\'><span style=\\'font-size: 40px;\\'>➕</span></div>' + '<div style=\\'font-weight: bold; color: #333; font-size: ${count > 16 ? '11px' : '13px'}; margin-bottom: 4px; min-height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1.2;\\'>${product.name.length > 25 ? product.name.substring(0, 22) + '...' : product.name}</div><div style=\\'color: #667eea; font-weight: bold; font-size: ${count > 16 ? '12px' : '14px'};\\'>Qté: ${product.quantity}</div>'">
+                            <div style="font-weight: bold; color: #333; font-size: ${count > 16 ? '11px' : '13px'}; margin-bottom: 4px; min-height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1.2;">
+                                ${product.name.length > 25 ? product.name.substring(0, 22) + '...' : product.name}
+                            </div>
+                            <div style="color: #667eea; font-weight: bold; font-size: ${count > 16 ? '12px' : '14px'};">
+                                Qté: ${product.quantity}
+                            </div>
                         </div>
-                        <div style="color: #667eea; font-weight: bold; font-size: ${count > 16 ? '12px' : '14px'};">
-                            Qté: ${product.quantity}
+                    `;
+                } else {
+                    // Produit sans image - afficher un placeholder cliquable
+                    gridHTML += `
+                        <div style="text-align: center; padding: 8px; background: ${bgColor}; border-radius: 8px; ${borderStyle}">
+                            <div style="width: 100%; height: ${imgHeight}px; display: flex; align-items: center; justify-content: center; background: #ffe0b2; border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="selectProductAndAddPhoto(${index})">
+                                <span style="font-size: 40px;">➕</span>
+                            </div>
+                            <div style="font-weight: bold; color: #333; font-size: ${count > 16 ? '11px' : '13px'}; margin-bottom: 4px; min-height: 32px; display: flex; align-items: center; justify-content: center; line-height: 1.2;">
+                                ${product.name.length > 25 ? product.name.substring(0, 22) + '...' : product.name}
+                            </div>
+                            <div style="color: #667eea; font-weight: bold; font-size: ${count > 16 ? '12px' : '14px'};">
+                                Qté: ${product.quantity}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             });
             
             gridHTML += `
