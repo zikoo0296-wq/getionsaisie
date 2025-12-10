@@ -372,6 +372,54 @@
                 transform: translateX(0);
             }
         }
+
+        /* ========== STYLES ONGLETS ========== */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 15px 15px 0 0;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.7);
+            color: #666;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab-btn:hover {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-3px);
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: #D32F2F;
+            box-shadow: 0 -4px 20px rgba(211, 47, 47, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* ========== FIN STYLES ONGLETS ========== */
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -396,6 +444,18 @@
             </div>
         </div>
 
+        <!-- ========== NAVIGATION ONGLETS ========== -->
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('whatsapp')">
+                💬 Messages WhatsApp
+            </button>
+            <button class="tab-btn" onclick="switchTab('productfilter')">
+                📊 Product Filter Pro
+            </button>
+        </div>
+
+        <!-- ========== ONGLET 1: MESSAGES WHATSAPP ========== -->
+        <div id="tab-whatsapp" class="tab-content active">
         <div class="main-content">
             <!-- Section Import -->
             <div class="card">
@@ -497,6 +557,87 @@
                 </div>
             </div>
         </div>
+        </div>
+        <!-- ========== FIN ONGLET 1 ========== -->
+
+        <!-- ========== ONGLET 2: PRODUCT FILTER PRO ========== -->
+        <div id="tab-productfilter" class="tab-content">
+        <div class="card">
+            <h2>📊 Product Filter Pro - Filtrage & Calcul de Quantités</h2>
+            
+            <!-- Upload Zone pour Product Filter -->
+            <div class="upload-zone" id="productFilterUploadZone" style="margin-bottom: 20px;">
+                <div class="upload-icon">📊</div>
+                <p style="font-size: 1.1em; color: #333; margin-bottom: 10px;">
+                    <strong>Glissez votre fichier Excel ici</strong>
+                </p>
+                <p style="color: #666;">Filtrage automatique des produits avec calcul des quantités</p>
+                <input type="file" id="productFilterFileInput" accept=".xlsx,.xls">
+                <div id="productFilterFileInfo" style="display: none; background: #e8f5e9; padding: 10px 15px; border-radius: 8px; margin-top: 15px; color: #2e7d32; font-weight: bold;"></div>
+            </div>
+
+            <!-- Stats -->
+            <div id="productFilterStats" style="display: none; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                    <div style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pfTotalProducts">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Produits uniques</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pfTotalQuantity">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Quantité totale</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #9c27b0 0%, #ab47bc 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pfTotalRefs">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Références extraites</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ff9800 0%, #ffa726 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pfAvgQuantity">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Quantité moyenne</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div id="productFilterActions" style="display: none; margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <input type="text" id="pfSearchInput" placeholder="🔍 Rechercher un produit ou une référence..." 
+                           style="flex: 1; min-width: 250px; padding: 12px 15px; border: 2px solid #D32F2F; border-radius: 8px; font-size: 1em;">
+                    <button class="btn" onclick="exportProductFilterExcel()" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);">
+                        📥 Exporter Excel
+                    </button>
+                    <button class="btn" onclick="resetProductFilter()" style="background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);">
+                        🔄 Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div id="productFilterResults" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="color: #D32F2F; margin: 0;">📋 Résultats du filtrage</h3>
+                    <span id="pfResultCount" style="color: #666;"></span>
+                </div>
+                <div style="overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px;">
+                    <table id="pfResultsTable" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #D32F2F; color: white; position: sticky; top: 0;">
+                                <th style="padding: 12px; text-align: center; width: 60px;">#</th>
+                                <th style="padding: 12px; text-align: left; cursor: pointer;" onclick="sortProductFilter('product')">Produit ↕</th>
+                                <th style="padding: 12px; text-align: center; cursor: pointer;" onclick="sortProductFilter('reference')">Référence ↕</th>
+                                <th style="padding: 12px; text-align: center; cursor: pointer;" onclick="sortProductFilter('quantity')">Quantité ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pfTableBody"></tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div id="pfPagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px; flex-wrap: wrap;"></div>
+            </div>
+        </div>
+        </div>
+        <!-- ========== FIN ONGLET 2 ========== -->
+
     </div>
 
     <div class="success-toast" id="successToast">
@@ -504,6 +645,26 @@
     </div>
 
     <script>
+        // ========== FONCTION DE CHANGEMENT D'ONGLET ==========
+        function switchTab(tabName) {
+            // Masquer tous les contenus d'onglets
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Désactiver tous les boutons d'onglets
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Afficher le contenu de l'onglet sélectionné
+            document.getElementById('tab-' + tabName).classList.add('active');
+            
+            // Activer le bouton correspondant
+            event.target.classList.add('active');
+        }
+        // ========== FIN FONCTION ONGLET ==========
+
         let excelData = null;
         let generatedMessages = {};
         let productsList = {}; // Dictionnaire produit -> lien image
@@ -2162,6 +2323,349 @@
         }
         
         // ========== FIN DU SYSTÈME DE GÉNÉRATION D'IMAGES ==========
+
+        // ========== PRODUCT FILTER PRO ==========
+        let pfAllProducts = [];
+        let pfFilteredProducts = [];
+        let pfCurrentPage = 1;
+        let pfItemsPerPage = 50;
+        let pfSortColumn = 'quantity';
+        let pfSortDirection = 'desc';
+
+        // Product Filter Upload handlers
+        const pfUploadZone = document.getElementById('productFilterUploadZone');
+        const pfFileInput = document.getElementById('productFilterFileInput');
+
+        pfUploadZone.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') {
+                pfFileInput.click();
+            }
+        });
+
+        pfFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) pfProcessFile(file);
+        });
+
+        pfUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            pfUploadZone.classList.add('dragover');
+        });
+
+        pfUploadZone.addEventListener('dragleave', () => {
+            pfUploadZone.classList.remove('dragover');
+        });
+
+        pfUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            pfUploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) pfProcessFile(file);
+        });
+
+        // Process file for Product Filter
+        function pfProcessFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                showToast('❌ Format invalide. Utilisez .xlsx ou .xls');
+                return;
+            }
+
+            const fileInfo = document.getElementById('productFilterFileInfo');
+            fileInfo.textContent = `📄 ${file.name}`;
+            fileInfo.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    pfAnalyzeData(jsonData);
+                } catch (error) {
+                    console.error(error);
+                    showToast('❌ Erreur lors de la lecture du fichier');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Analyze data for Product Filter
+        function pfAnalyzeData(data) {
+            const productCols = ['Produit', 'Product', 'Nom', 'Name', 'Article', 'Désignation', 'Description', 'Nom product'];
+            const qtyCols = ['Qte', 'Qty', 'Quantité', 'Quantity', 'QTY', 'Stock', 'Quantité Totale'];
+
+            let productCol = null;
+            let qtyCol = null;
+
+            if (data.length > 0) {
+                const keys = Object.keys(data[0]);
+                productCol = keys.find(k => productCols.some(pc => k.toLowerCase().includes(pc.toLowerCase())));
+                qtyCol = keys.find(k => qtyCols.some(qc => k.toLowerCase().includes(qc.toLowerCase())));
+
+                if (!productCol) {
+                    productCol = keys.find(k => typeof data[0][k] === 'string');
+                }
+                if (!qtyCol) {
+                    qtyCol = keys.find(k => typeof data[0][k] === 'number');
+                }
+            }
+
+            if (!productCol) {
+                showToast('❌ Colonne produit non trouvée');
+                return;
+            }
+
+            // Group by product
+            const productMap = new Map();
+
+            data.forEach(row => {
+                const product = row[productCol];
+                if (!product || String(product).trim() === '') return;
+
+                const productName = String(product).trim();
+                const qty = parseFloat(row[qtyCol]) || 0;
+
+                if (productMap.has(productName)) {
+                    productMap.get(productName).quantity += qty;
+                } else {
+                    productMap.set(productName, {
+                        product: productName,
+                        quantity: qty,
+                        reference: pfExtractReference(productName)
+                    });
+                }
+            });
+
+            pfAllProducts = Array.from(productMap.values());
+            pfFilteredProducts = [...pfAllProducts];
+
+            pfSortProducts('quantity', 'desc');
+            pfUpdateStats();
+            pfRenderTable();
+            
+            document.getElementById('productFilterStats').style.display = 'block';
+            document.getElementById('productFilterActions').style.display = 'block';
+            document.getElementById('productFilterResults').style.display = 'block';
+
+            showToast(`✅ ${pfAllProducts.length} produits analysés !`);
+        }
+
+        // Extract reference from product name
+        function pfExtractReference(productName) {
+            if (!productName) return '';
+
+            const patterns = [
+                /([A-Z]{2}-[A-Z]-\d+)_\d+/i,
+                /([A-Z]{2}-[A-Z]\d+)_\d+/i,
+                /([A-Z]{1,3}-\d+)_\d+/i,
+                /\(([A-Z]\d+)\)/i,
+                /\(([A-Z]{2,4}-[A-Z]?-?\d+)\)/i,
+                /([A-Z]{2}-[A-Z]-\d+)/i,
+                /([A-Z]{2}-[A-Z]\d+)/i,
+                /\b([A-Z]{1,3}-\d+)\b/i,
+                /\b([A-Z]{1,4}\d+)\b/i,
+            ];
+
+            for (const pattern of patterns) {
+                const match = productName.match(pattern);
+                if (match) {
+                    let ref = match[1].toUpperCase().trim();
+                    if (!ref.includes('-') && /^[A-Z]+\d+$/.test(ref)) {
+                        ref = ref.replace(/^([A-Z]+)(\d+)$/, '$1-$2');
+                    }
+                    return ref;
+                }
+            }
+            return '';
+        }
+
+        // Update stats
+        function pfUpdateStats() {
+            const totalQty = pfFilteredProducts.reduce((sum, p) => sum + p.quantity, 0);
+            const refsCount = pfFilteredProducts.filter(p => p.reference).length;
+            const avgQty = pfFilteredProducts.length > 0 ? totalQty / pfFilteredProducts.length : 0;
+
+            document.getElementById('pfTotalProducts').textContent = pfFilteredProducts.length.toLocaleString();
+            document.getElementById('pfTotalQuantity').textContent = totalQty.toLocaleString();
+            document.getElementById('pfTotalRefs').textContent = refsCount.toLocaleString();
+            document.getElementById('pfAvgQuantity').textContent = avgQty.toFixed(0);
+        }
+
+        // Render table
+        function pfRenderTable() {
+            const start = (pfCurrentPage - 1) * pfItemsPerPage;
+            const end = start + pfItemsPerPage;
+            const pageProducts = pfFilteredProducts.slice(start, end);
+
+            document.getElementById('pfResultCount').textContent = 
+                `Affichage ${start + 1}-${Math.min(end, pfFilteredProducts.length)} sur ${pfFilteredProducts.length}`;
+
+            const tbody = document.getElementById('pfTableBody');
+            tbody.innerHTML = pageProducts.map((product, index) => {
+                const rank = start + index + 1;
+                let rankStyle = 'background: #f5f5f5; color: #666;';
+                if (rank === 1) rankStyle = 'background: linear-gradient(135deg, #ffd700, #ffb700); color: #000;';
+                else if (rank === 2) rankStyle = 'background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #000;';
+                else if (rank === 3) rankStyle = 'background: linear-gradient(135deg, #cd7f32, #b87333); color: #fff;';
+                
+                return `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 12px; text-align: center;">
+                            <span style="display: inline-block; width: 32px; height: 32px; line-height: 32px; border-radius: 8px; font-weight: bold; ${rankStyle}">${rank}</span>
+                        </td>
+                        <td style="padding: 12px; max-width: 400px;">
+                            <span title="${product.product}" style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${product.product}</span>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            ${product.reference 
+                                ? `<span style="display: inline-block; padding: 4px 12px; background: rgba(156, 39, 176, 0.15); color: #9c27b0; border-radius: 20px; font-family: monospace; font-weight: 500;">${product.reference}</span>` 
+                                : '<span style="color: #999;">—</span>'}
+                        </td>
+                        <td style="padding: 12px; text-align: center; font-family: monospace; font-weight: bold; font-size: 1.1em; color: #4caf50;">${product.quantity.toLocaleString()}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            pfRenderPagination();
+        }
+
+        // Pagination
+        function pfRenderPagination() {
+            const totalPages = Math.ceil(pfFilteredProducts.length / pfItemsPerPage);
+            const pagination = document.getElementById('pfPagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <button onclick="pfGoToPage(1)" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${pfCurrentPage === 1 ? 'disabled' : ''}>«</button>
+                <button onclick="pfGoToPage(${pfCurrentPage - 1})" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${pfCurrentPage === 1 ? 'disabled' : ''}>‹</button>
+            `;
+
+            const maxVisible = 5;
+            let startPage = Math.max(1, pfCurrentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === pfCurrentPage;
+                html += `<button onclick="pfGoToPage(${i})" style="padding: 8px 12px; border: 1px solid ${isActive ? '#D32F2F' : '#ddd'}; border-radius: 6px; background: ${isActive ? '#D32F2F' : 'white'}; color: ${isActive ? 'white' : '#333'}; cursor: pointer; font-weight: ${isActive ? 'bold' : 'normal'};">${i}</button>`;
+            }
+
+            html += `
+                <span style="padding: 0 10px; color: #666;">${pfCurrentPage}/${totalPages}</span>
+                <button onclick="pfGoToPage(${pfCurrentPage + 1})" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${pfCurrentPage === totalPages ? 'disabled' : ''}>›</button>
+                <button onclick="pfGoToPage(${totalPages})" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${pfCurrentPage === totalPages ? 'disabled' : ''}>»</button>
+            `;
+
+            pagination.innerHTML = html;
+        }
+
+        function pfGoToPage(page) {
+            const totalPages = Math.ceil(pfFilteredProducts.length / pfItemsPerPage);
+            if (page >= 1 && page <= totalPages) {
+                pfCurrentPage = page;
+                pfRenderTable();
+            }
+        }
+
+        // Sort
+        function sortProductFilter(column) {
+            if (pfSortColumn === column) {
+                pfSortDirection = pfSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                pfSortColumn = column;
+                pfSortDirection = column === 'quantity' ? 'desc' : 'asc';
+            }
+            pfSortProducts(pfSortColumn, pfSortDirection);
+            pfCurrentPage = 1;
+            pfRenderTable();
+        }
+
+        function pfSortProducts(column, direction) {
+            pfFilteredProducts.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = (valB || '').toLowerCase();
+                }
+
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        // Search
+        document.getElementById('pfSearchInput').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (!query) {
+                pfFilteredProducts = [...pfAllProducts];
+            } else {
+                pfFilteredProducts = pfAllProducts.filter(p => 
+                    p.product.toLowerCase().includes(query) ||
+                    (p.reference && p.reference.toLowerCase().includes(query))
+                );
+            }
+
+            pfSortProducts(pfSortColumn, pfSortDirection);
+            pfCurrentPage = 1;
+            pfUpdateStats();
+            pfRenderTable();
+        });
+
+        // Export Excel
+        function exportProductFilterExcel() {
+            if (pfFilteredProducts.length === 0) {
+                showToast('❌ Aucune donnée à exporter');
+                return;
+            }
+
+            const exportData = pfFilteredProducts.map((p, i) => ({
+                '#': i + 1,
+                'Produit': p.product,
+                'Référence': p.reference || '',
+                'Quantité Totale': p.quantity
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Produits Filtrés');
+
+            ws['!cols'] = [
+                { wch: 5 },
+                { wch: 50 },
+                { wch: 15 },
+                { wch: 15 }
+            ];
+
+            const filename = `produits_filtres_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            
+            showToast('✅ Export réussi !');
+        }
+
+        // Reset
+        function resetProductFilter() {
+            pfAllProducts = [];
+            pfFilteredProducts = [];
+            pfCurrentPage = 1;
+            document.getElementById('pfSearchInput').value = '';
+            document.getElementById('productFilterFileInput').value = '';
+            document.getElementById('productFilterFileInfo').style.display = 'none';
+            document.getElementById('productFilterStats').style.display = 'none';
+            document.getElementById('productFilterActions').style.display = 'none';
+            document.getElementById('productFilterResults').style.display = 'none';
+            showToast('🔄 Product Filter réinitialisé');
+        }
+        // ========== FIN PRODUCT FILTER PRO ==========
 
 </script>
 </body>
