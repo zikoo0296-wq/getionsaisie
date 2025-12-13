@@ -452,6 +452,9 @@
             <button class="tab-btn" onclick="switchTab('productfilter')">
                 📊 Product Filter Pro
             </button>
+            <button class="tab-btn" onclick="switchTab('topproduits')">
+                🏆 Top Produits
+            </button>
         </div>
 
         <!-- ========== ONGLET 1: MESSAGES WHATSAPP ========== -->
@@ -637,6 +640,168 @@
         </div>
         </div>
         <!-- ========== FIN ONGLET 2 ========== -->
+
+        <!-- ========== ONGLET 3: TOP PRODUITS ========== -->
+        <div id="tab-topproduits" class="tab-content">
+        <div class="card">
+            <h2>🏆 Top Produits Vendus - Analyse Complète</h2>
+            
+            <!-- Upload Zone pour Top Produits -->
+            <div class="upload-zone" id="topProduitsUploadZone" style="margin-bottom: 20px;">
+                <div class="upload-icon">🏆</div>
+                <p style="font-size: 1.1em; color: #333; margin-bottom: 10px;">
+                    <strong>Glissez votre fichier Excel ici</strong>
+                </p>
+                <p style="color: #666;">Analyse complète des produits avec quantités, prix et images</p>
+                <input type="file" id="topProduitsFileInput" accept=".xlsx,.xls">
+                <div id="topProduitsFileInfo" style="display: none; background: #e8f5e9; padding: 10px 15px; border-radius: 8px; margin-top: 15px; color: #2e7d32; font-weight: bold;"></div>
+            </div>
+
+            <!-- Options de filtrage -->
+            <div id="topProduitsOptions" style="display: none; margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, #FDB913 0%, #FFCD3C 100%); padding: 20px; border-radius: 12px;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="color: #D32F2F; font-weight: bold; display: block; margin-bottom: 8px;">📅 Date :</label>
+                            <select id="topProduitsDateFilter" onchange="updateTopProduitsGrid()" style="width: 100%; padding: 10px; border: 2px solid #D32F2F; border-radius: 8px; font-size: 1em;">
+                                <option value="all">Toutes les dates</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="color: #D32F2F; font-weight: bold; display: block; margin-bottom: 8px;">📆 Mois :</label>
+                            <select id="topProduitsMonthFilter" onchange="updateTopProduitsGrid()" style="width: 100%; padding: 10px; border: 2px solid #D32F2F; border-radius: 8px; font-size: 1em;">
+                                <option value="all">Tous les mois</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="color: #D32F2F; font-weight: bold; display: block; margin-bottom: 8px;">📍 Localisation :</label>
+                            <select id="topProduitsLocationFilter" onchange="updateTopProduitsGrid()" style="width: 100%; padding: 10px; border: 2px solid #D32F2F; border-radius: 8px; font-size: 1em;">
+                                <option value="all">Toutes</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label style="color: #D32F2F; font-weight: bold; display: block; margin-bottom: 8px;">🔢 Afficher :</label>
+                            <select id="topProduitsCount" onchange="updateTopProduitsGrid()" style="width: 100%; padding: 10px; border: 2px solid #D32F2F; border-radius: 8px; font-size: 1em;">
+                                <option value="10">Top 10</option>
+                                <option value="20">Top 20</option>
+                                <option value="50">Top 50</option>
+                                <option value="100">Top 100</option>
+                                <option value="all" selected>Tous les produits</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Recherche -->
+                    <div style="margin-top: 15px;">
+                        <input type="text" id="topProduitsSearch" placeholder="🔍 Rechercher un produit..." onkeyup="updateTopProduitsGrid()" style="width: 100%; padding: 12px 15px; border: 2px solid #D32F2F; border-radius: 8px; font-size: 1em;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Top Produits -->
+            <div id="topProduitsStats" style="display: none; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+                    <div style="background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%); padding: 18px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 1.8em; font-weight: bold;" id="tpTotalProduits">0</div>
+                        <div style="font-size: 0.85em; opacity: 0.9;">Produits</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #FDB913 0%, #FFCD3C 100%); padding: 18px; border-radius: 12px; text-align: center; color: #333;">
+                        <div style="font-size: 1.8em; font-weight: bold;" id="tpTotalQty">0</div>
+                        <div style="font-size: 0.85em;">Quantité Totale</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); padding: 18px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 1.8em; font-weight: bold;" id="tpTotalPrix">0</div>
+                        <div style="font-size: 0.85em; opacity: 0.9;">Chiffre d'Affaires</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #9c27b0 0%, #ab47bc 100%); padding: 18px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 1.8em; font-weight: bold;" id="tpAvgPrix">0</div>
+                        <div style="font-size: 0.85em; opacity: 0.9;">Prix Moyen</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div id="topProduitsActions" style="display: none; margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="exportTopProduitsExcel()" class="btn" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);">
+                        📥 Export Excel
+                    </button>
+                    <button onclick="exportTopProduitsAsPDF()" class="btn" style="background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%);">
+                        📸 PDF Global
+                    </button>
+                    <button onclick="showReferencesPDF()" class="btn" style="background: linear-gradient(135deg, #ff5722 0%, #ff7043 100%);">
+                        📑 PDF par Référence
+                    </button>
+                    <button onclick="generateTopProduitsImageGrid()" class="btn" style="background: linear-gradient(135deg, #9c27b0 0%, #ab47bc 100%);">
+                        🖼️ Voir Grilles Images
+                    </button>
+                    <button onclick="resetTopProduits()" class="btn" style="background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);">
+                        🔄 Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section PDF par Référence -->
+            <div id="referencesPDFSection" style="display: none; margin-bottom: 20px; background: #fff3e0; padding: 20px; border-radius: 15px; border: 2px solid #ff9800;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="color: #e65100; margin: 0;">📑 Export PDF par Référence</h3>
+                    <button onclick="document.getElementById('referencesPDFSection').style.display='none'" class="btn" style="background: #999; padding: 8px 15px;">✖ Fermer</button>
+                </div>
+                <p style="color: #666; margin-bottom: 15px;">Sélectionnez une référence pour générer son PDF :</p>
+                <div id="referencesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto;">
+                    <!-- Les références seront générées ici -->
+                </div>
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcc80;">
+                    <button onclick="exportAllReferencesPDF()" class="btn" style="background: linear-gradient(135deg, #e65100 0%, #ff9800 100%); width: 100%;">
+                        📦 Exporter TOUS les PDF par Référence
+                    </button>
+                </div>
+            </div>
+
+            <!-- Liste Top Produits -->
+            <div id="topProduitsListe" style="display: none; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="color: #D32F2F; margin: 0;">📋 Liste des Produits</h3>
+                    <span id="tpResultCount" style="color: #666;"></span>
+                </div>
+                <div id="topProduitsTableContainer" style="overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #D32F2F; color: white; position: sticky; top: 0; z-index: 10;">
+                                <th style="padding: 12px; text-align: center; width: 50px;">#</th>
+                                <th style="padding: 12px; text-align: center; width: 70px;">Image</th>
+                                <th style="padding: 12px; text-align: left; cursor: pointer;" onclick="sortTopProduits('name')">Produit ↕</th>
+                                <th style="padding: 12px; text-align: center; cursor: pointer;" onclick="sortTopProduits('quantity')">Quantité ↕</th>
+                                <th style="padding: 12px; text-align: center; cursor: pointer;" onclick="sortTopProduits('price')">Prix Unit. ↕</th>
+                                <th style="padding: 12px; text-align: center; cursor: pointer;" onclick="sortTopProduits('total')">Total ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topProduitsTableBody"></tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div id="tpPagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px; flex-wrap: wrap;"></div>
+            </div>
+
+            <!-- Grille d'images Top Produits -->
+            <div id="topProduitsGridSection" style="display: none; margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="color: #D32F2F; margin: 0;">📸 Grilles des Produits (20 par grille)</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="gridPageInfo" style="color: #666;"></span>
+                        <button onclick="prevGridPage()" class="btn" style="background: #666; padding: 8px 15px;">◀ Précédent</button>
+                        <button onclick="nextGridPage()" class="btn" style="background: #666; padding: 8px 15px;">Suivant ▶</button>
+                        <button onclick="captureTopProduitsGrid()" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            📸 Copier cette grille
+                        </button>
+                    </div>
+                </div>
+                <div id="topProduitsGridContainer" style="background: white; padding: 20px; border-radius: 15px; border: 2px solid #ddd;">
+                    <!-- La grille sera générée ici -->
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- ========== FIN ONGLET 3 ========== -->
 
     </div>
 
@@ -876,16 +1041,41 @@
                 const paiement = getColumnValue(row, ['Paiement', 'paiement']);
                 let typeP = getColumnValue(row, ['Type P', 'TypeP', 'type_p']);
                 
+                // Normaliser le type de paiement (fusionner les variations)
+                function normalizePaymentType(type) {
+                    if (!type) return null;
+                    var t = type.toString().trim().toLowerCase();
+                    
+                    // Normaliser Espèce/Espèces/Especes
+                    if (t === 'espèce' || t === 'espèces' || t === 'espece' || t === 'especes' || t === 'esp') {
+                        return 'Espèces';
+                    }
+                    // Normaliser Crédit/Credit
+                    if (t === 'crédit' || t === 'credit' || t === 'cr') {
+                        return 'Crédit';
+                    }
+                    // Normaliser CIH variations
+                    if (t.indexOf('cih') !== -1) {
+                        // Garder le type original mais capitaliser
+                        return type.toString().trim().toUpperCase();
+                    }
+                    // Retourner avec première lettre majuscule
+                    return type.toString().trim().charAt(0).toUpperCase() + type.toString().trim().slice(1).toLowerCase();
+                }
+                
                 // Gérer les cas où Paiement et Type P sont vides
                 if ((!paiement || paiement.toString().trim() === '') && 
                     (!typeP || typeP.toString().trim() === '')) {
                     typeP = 'Mode de paiement inconnu';
-                } else if (paiement === 'Crédit') {
+                } else if (paiement === 'Crédit' || (paiement && paiement.toString().toLowerCase() === 'crédit')) {
                     // Si paiement est "Crédit", utiliser "Crédit" comme type
                     typeP = 'Crédit';
                 } else if (!typeP || typeP.toString().trim() === '') {
                     // Si Type P est vide mais Paiement existe
-                    typeP = 'Espèce';
+                    typeP = 'Espèces';
+                } else {
+                    // Normaliser le type de paiement
+                    typeP = normalizePaymentType(typeP);
                 }
                 
                 // Créer une clé unique : client_statut_typeP_date
@@ -959,7 +1149,7 @@
             }
 
             const firstRow = group.rows[0];
-            const typeP = getColumnValue(firstRow, ['Type P', 'TypeP', 'type_p']) || 'Espèce';
+            const typeP = getColumnValue(firstRow, ['Type P', 'TypeP', 'type_p']) || 'Espèces';
             const paiement = getColumnValue(firstRow, ['Paiement', 'paiement']);
             
             // Grouper les produits identiques avec le même prix
@@ -2666,6 +2856,1116 @@
             showToast('🔄 Product Filter réinitialisé');
         }
         // ========== FIN PRODUCT FILTER PRO ==========
+
+        // ========== TOP PRODUITS COMPLET ==========
+        let tpAllData = [];
+        let tpAllProducts = [];
+        let tpFilteredProducts = [];
+        let tpProductImages = {};
+        let tpCurrentPage = 1;
+        let tpItemsPerPage = 50;
+        let tpSortColumn = 'quantity';
+        let tpSortDirection = 'desc';
+        let tpGridPage = 1;
+        let tpGridItemsPerPage = 20; // 20 produits par grille
+
+        // Upload handlers Top Produits
+        const tpUploadZone = document.getElementById('topProduitsUploadZone');
+        const tpFileInput = document.getElementById('topProduitsFileInput');
+
+        tpUploadZone.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') {
+                tpFileInput.click();
+            }
+        });
+
+        tpFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) tpProcessFile(file);
+        });
+
+        tpUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            tpUploadZone.classList.add('dragover');
+        });
+
+        tpUploadZone.addEventListener('dragleave', () => {
+            tpUploadZone.classList.remove('dragover');
+        });
+
+        tpUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            tpUploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) tpProcessFile(file);
+        });
+
+        // Process file Top Produits
+        function tpProcessFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                showToast('❌ Format invalide. Utilisez .xlsx ou .xls');
+                return;
+            }
+
+            const fileInfo = document.getElementById('topProduitsFileInfo');
+            fileInfo.textContent = `📄 ${file.name}`;
+            fileInfo.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    // Parser les dates
+                    tpAllData = jsonData.map(row => {
+                        let dateValue = row['Date'] || row['date'] || row['DATE'];
+                        let parsedDate = 'Sans date';
+                        let month = '';
+                        let year = '';
+                        
+                        // Gérer les dates au format string ISO (2025-01-01 00:00:00)
+                        if (typeof dateValue === 'string' && dateValue.includes('-')) {
+                            const datePart = dateValue.split(' ')[0]; // Prendre juste la date
+                            const parts = datePart.split('-');
+                            if (parts.length >= 3) {
+                                year = parts[0];
+                                month = parts[1];
+                                const day = parts[2];
+                                parsedDate = `${day}/${month}/${year}`;
+                            }
+                        }
+                        // Gérer les numéros de série Excel
+                        else if (typeof dateValue === 'number' && dateValue > 0) {
+                            const epoch = new Date(1899, 11, 30);
+                            const days = Math.floor(dateValue);
+                            const date = new Date(epoch.getTime() + days * 86400000);
+                            const day = String(date.getDate()).padStart(2, '0');
+                            month = String(date.getMonth() + 1).padStart(2, '0');
+                            year = String(date.getFullYear());
+                            parsedDate = `${day}/${month}/${year}`;
+                        }
+                        // Gérer les dates au format DD/MM/YYYY
+                        else if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                            parsedDate = dateValue;
+                            const parts = dateValue.split('/');
+                            if (parts.length >= 3) {
+                                month = parts[1];
+                                year = parts[2];
+                            }
+                        }
+                        
+                        return { ...row, parsedDate, month, year };
+                    });
+
+                    tpAnalyzeData();
+                } catch (error) {
+                    console.error(error);
+                    showToast('❌ Erreur lors de la lecture du fichier');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Analyser les données Top Produits
+        function tpAnalyzeData() {
+            // Colonnes spécifiques du fichier EcomLik
+            const productCols = ['Produit', 'Product', 'Nom', 'Name', 'Article', 'Désignation'];
+            const qtyCols = ['Qte', 'Qty', 'Quantité', 'Quantity', 'QTY'];
+            const priceCols = ['Prix', 'Price', 'prix', 'PRIX', 'PU', 'P.U'];
+            const locationCols = ['Statut', 'statut', 'STATUT', 'Localisation', 'Location', 'Ville'];
+            const imageCols = ['Image', 'image', 'IMAGE', 'Photo', 'Lien'];
+            const clientCols = ['Nom ', 'Nom', 'Client', 'client', 'CLIENT']; // Note: 'Nom ' avec espace
+
+            let productCol = null, qtyCol = null, priceCol = null, locationCol = null, imageCol = null, clientCol = null;
+
+            if (tpAllData.length > 0) {
+                const keys = Object.keys(tpAllData[0]);
+                productCol = keys.find(k => k === 'Produit') || keys.find(k => productCols.some(pc => k.toLowerCase().includes(pc.toLowerCase())));
+                qtyCol = keys.find(k => k === 'Qte') || keys.find(k => qtyCols.some(qc => k.toLowerCase().includes(qc.toLowerCase())));
+                priceCol = keys.find(k => k === 'Prix') || keys.find(k => priceCols.some(pc => k.toLowerCase().includes(pc.toLowerCase())));
+                locationCol = keys.find(k => k === 'Statut') || keys.find(k => locationCols.some(lc => k.toLowerCase().includes(lc.toLowerCase())));
+                imageCol = keys.find(k => k === 'Image') || keys.find(k => imageCols.some(ic => k.toLowerCase() === ic.toLowerCase()));
+                clientCol = keys.find(k => k === 'Nom ') || keys.find(k => clientCols.some(cc => k === cc));
+                
+                console.log('Colonnes détectées:', { productCol, qtyCol, priceCol, locationCol, imageCol, clientCol });
+            }
+
+            if (!productCol) {
+                showToast('❌ Colonne produit non trouvée');
+                return;
+            }
+
+            // Extraire les images depuis la colonne Image
+            tpProductImages = {};
+            tpAllData.forEach(row => {
+                const produit = row[productCol];
+                const image = row[imageCol];
+                
+                if (produit && image) {
+                    const productKey = String(produit).toLowerCase().trim();
+                    if (!tpProductImages[productKey]) {
+                        tpProductImages[productKey] = image;
+                    }
+                }
+            });
+            
+            console.log(`📸 ${Object.keys(tpProductImages).length} images trouvées`);
+
+            // Extraire les filtres uniques
+            const dates = new Set();
+            const months = new Set();
+            const locations = new Set();
+            const clients = new Set();
+            const monthNames = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+            tpAllData.forEach(row => {
+                if (row.parsedDate && row.parsedDate !== 'Sans date') dates.add(row.parsedDate);
+                if (row.month && row.year) months.add(`${row.month}/${row.year}`);
+                if (locationCol && row[locationCol]) locations.add(String(row[locationCol]).trim());
+                if (clientCol && row[clientCol]) clients.add(String(row[clientCol]).trim());
+            });
+
+            // Remplir les filtres
+            const dateFilter = document.getElementById('topProduitsDateFilter');
+            dateFilter.innerHTML = '<option value="all">Toutes les dates</option>';
+            Array.from(dates).sort().reverse().forEach(date => {
+                dateFilter.innerHTML += `<option value="${date}">${date}</option>`;
+            });
+
+            const monthFilter = document.getElementById('topProduitsMonthFilter');
+            monthFilter.innerHTML = '<option value="all">Tous les mois</option>';
+            Array.from(months).sort().reverse().forEach(m => {
+                const [mon, yr] = m.split('/');
+                const monthName = monthNames[parseInt(mon)] || mon;
+                monthFilter.innerHTML += `<option value="${m}">${monthName} ${yr}</option>`;
+            });
+
+            const locationFilter = document.getElementById('topProduitsLocationFilter');
+            locationFilter.innerHTML = '<option value="all">Toutes</option>';
+            Array.from(locations).sort().forEach(loc => {
+                locationFilter.innerHTML += `<option value="${loc}">${loc}</option>`;
+            });
+
+            // Stocker les colonnes
+            window.tpColumns = { productCol, qtyCol, priceCol, locationCol, imageCol, clientCol };
+
+            // Afficher les sections
+            document.getElementById('topProduitsOptions').style.display = 'block';
+            document.getElementById('topProduitsStats').style.display = 'block';
+            document.getElementById('topProduitsActions').style.display = 'block';
+            document.getElementById('topProduitsListe').style.display = 'block';
+
+            updateTopProduitsGrid();
+            showToast(`✅ ${tpAllData.length} lignes analysées ! ${Object.keys(tpProductImages).length} images trouvées`);
+        }
+
+        // Mettre à jour la liste Top Produits
+        function updateTopProduitsGrid() {
+            const { productCol, qtyCol, priceCol, locationCol, imageCol } = window.tpColumns || {};
+            if (!productCol) return;
+
+            const countFilter = document.getElementById('topProduitsCount').value;
+            const dateFilter = document.getElementById('topProduitsDateFilter').value;
+            const monthFilter = document.getElementById('topProduitsMonthFilter').value;
+            const locationFilter = document.getElementById('topProduitsLocationFilter').value;
+            const searchQuery = (document.getElementById('topProduitsSearch').value || '').toLowerCase().trim();
+
+            // Filtrer les données
+            let filteredData = tpAllData.filter(row => {
+                if (dateFilter !== 'all' && row.parsedDate !== dateFilter) return false;
+                if (monthFilter !== 'all') {
+                    const rowMonth = `${row.month}/${row.year}`;
+                    if (rowMonth !== monthFilter) return false;
+                }
+                if (locationFilter !== 'all' && locationCol) {
+                    const rowLoc = String(row[locationCol] || '').trim();
+                    if (rowLoc !== locationFilter) return false;
+                }
+                return true;
+            });
+
+            // Grouper par produit
+            const productMap = new Map();
+            filteredData.forEach(row => {
+                const product = row[productCol];
+                if (!product || String(product).trim() === '') return;
+
+                const productName = String(product).trim();
+                const qty = parseFloat(row[qtyCol]) || 1;
+                const price = parseFloat(row[priceCol]) || 0;
+                const image = row[imageCol] || row['Image'] || null;
+
+                if (productMap.has(productName)) {
+                    const existing = productMap.get(productName);
+                    existing.quantity += qty;
+                    existing.totalPrice += price * qty;
+                    if (price > 0 && existing.unitPrice === 0) existing.unitPrice = price;
+                    // Garder la première image trouvée
+                    if (!existing.image && image) existing.image = image;
+                } else {
+                    productMap.set(productName, {
+                        name: productName,
+                        quantity: qty,
+                        unitPrice: price,
+                        totalPrice: price * qty,
+                        image: image || tpProductImages[productName.toLowerCase().trim()] || null
+                    });
+                }
+            });
+
+            // Convertir en tableau
+            tpAllProducts = Array.from(productMap.values());
+
+            // Filtrer par recherche
+            if (searchQuery) {
+                tpFilteredProducts = tpAllProducts.filter(p => 
+                    p.name.toLowerCase().includes(searchQuery)
+                );
+            } else {
+                tpFilteredProducts = [...tpAllProducts];
+            }
+
+            // Trier
+            tpSortProducts(tpSortColumn, tpSortDirection);
+
+            // Limiter si nécessaire
+            const displayProducts = countFilter === 'all' 
+                ? tpFilteredProducts 
+                : tpFilteredProducts.slice(0, parseInt(countFilter));
+
+            // Mettre à jour les stats
+            const totalQty = displayProducts.reduce((sum, p) => sum + p.quantity, 0);
+            const totalPrix = displayProducts.reduce((sum, p) => sum + p.totalPrice, 0);
+            const avgPrix = displayProducts.length > 0 && totalQty > 0 ? totalPrix / totalQty : 0;
+
+            document.getElementById('tpTotalProduits').textContent = displayProducts.length.toLocaleString();
+            document.getElementById('tpTotalQty').textContent = totalQty.toLocaleString();
+            document.getElementById('tpTotalPrix').textContent = totalPrix.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' Dh';
+            document.getElementById('tpAvgPrix').textContent = avgPrix.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' Dh';
+
+            // Stocker pour export et grille
+            window.tpDisplayProducts = displayProducts;
+
+            // Réinitialiser la page de grille
+            tpGridPage = 1;
+
+            // Pagination
+            tpCurrentPage = 1;
+            tpRenderTable();
+        }
+
+        // Trier les produits
+        function sortTopProduits(column) {
+            if (tpSortColumn === column) {
+                tpSortDirection = tpSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                tpSortColumn = column;
+                tpSortDirection = column === 'name' ? 'asc' : 'desc';
+            }
+            tpSortProducts(tpSortColumn, tpSortDirection);
+            tpCurrentPage = 1;
+            tpRenderTable();
+        }
+
+        function tpSortProducts(column, direction) {
+            const key = column === 'name' ? 'name' : 
+                        column === 'quantity' ? 'quantity' : 
+                        column === 'price' ? 'unitPrice' : 'totalPrice';
+            
+            tpFilteredProducts.sort((a, b) => {
+                let valA = a[key];
+                let valB = b[key];
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        // Render table
+        function tpRenderTable() {
+            const countFilter = document.getElementById('topProduitsCount').value;
+            const products = countFilter === 'all' 
+                ? tpFilteredProducts 
+                : tpFilteredProducts.slice(0, parseInt(countFilter));
+
+            const start = (tpCurrentPage - 1) * tpItemsPerPage;
+            const end = start + tpItemsPerPage;
+            const pageProducts = products.slice(start, end);
+
+            document.getElementById('tpResultCount').textContent = 
+                `Affichage ${start + 1}-${Math.min(end, products.length)} sur ${products.length} produits`;
+
+            const tbody = document.getElementById('topProduitsTableBody');
+            tbody.innerHTML = pageProducts.map((product, index) => {
+                const rank = start + index + 1;
+                let rankStyle = 'background: #f5f5f5; color: #666;';
+                if (rank === 1) rankStyle = 'background: linear-gradient(135deg, #ffd700, #ffb700); color: #000;';
+                else if (rank === 2) rankStyle = 'background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #000;';
+                else if (rank === 3) rankStyle = 'background: linear-gradient(135deg, #cd7f32, #b87333); color: #fff;';
+
+                // Convertir le lien Google Drive en lien direct
+                let directUrl = null;
+                if (product.image) {
+                    directUrl = convertGDriveLink(product.image);
+                }
+
+                const imgHtml = directUrl 
+                    ? '<img src="' + directUrl + '" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;" onerror="this.style.display=\'none\'">' 
+                    : '<span style="color: #ccc; font-size: 1.5em;">📷</span>';
+
+                return '<tr style="border-bottom: 1px solid #eee;">' +
+                    '<td style="padding: 10px; text-align: center;">' +
+                        '<span style="display: inline-block; width: 32px; height: 32px; line-height: 32px; border-radius: 8px; font-weight: bold; font-size: 0.85em; ' + rankStyle + '">' + rank + '</span>' +
+                    '</td>' +
+                    '<td style="padding: 10px; text-align: center;">' + imgHtml + '</td>' +
+                    '<td style="padding: 10px; font-weight: 500; max-width: 300px;">' +
+                        '<span title="' + product.name + '" style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + product.name + '</span>' +
+                    '</td>' +
+                    '<td style="padding: 10px; text-align: center; font-weight: bold; color: #D32F2F; font-size: 1.1em;">' + product.quantity.toLocaleString() + '</td>' +
+                    '<td style="padding: 10px; text-align: center; color: #666;">' + (product.unitPrice > 0 ? product.unitPrice.toLocaleString('fr-FR') + ' Dh' : '—') + '</td>' +
+                    '<td style="padding: 10px; text-align: center; font-weight: bold; color: #4caf50;">' + (product.totalPrice > 0 ? product.totalPrice.toLocaleString('fr-FR') + ' Dh' : '—') + '</td>' +
+                '</tr>';
+            }).join('');
+
+            tpRenderPagination(products.length);
+        }
+
+        // Pagination
+        function tpRenderPagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / tpItemsPerPage);
+            const pagination = document.getElementById('tpPagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <button onclick="tpGoToPage(1)" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${tpCurrentPage === 1 ? 'disabled' : ''}>«</button>
+                <button onclick="tpGoToPage(${tpCurrentPage - 1})" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${tpCurrentPage === 1 ? 'disabled' : ''}>‹</button>
+            `;
+
+            const maxVisible = 5;
+            let startPage = Math.max(1, tpCurrentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === tpCurrentPage;
+                html += `<button onclick="tpGoToPage(${i})" style="padding: 8px 12px; border: 1px solid ${isActive ? '#D32F2F' : '#ddd'}; border-radius: 6px; background: ${isActive ? '#D32F2F' : 'white'}; color: ${isActive ? 'white' : '#333'}; cursor: pointer;">${i}</button>`;
+            }
+
+            html += `
+                <span style="padding: 0 10px; color: #666;">${tpCurrentPage}/${totalPages}</span>
+                <button onclick="tpGoToPage(${tpCurrentPage + 1})" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${tpCurrentPage === totalPages ? 'disabled' : ''}>›</button>
+                <button onclick="tpGoToPage(${totalPages})" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer;" ${tpCurrentPage === totalPages ? 'disabled' : ''}>»</button>
+            `;
+
+            pagination.innerHTML = html;
+        }
+
+        function tpGoToPage(page) {
+            const countFilter = document.getElementById('topProduitsCount').value;
+            const products = countFilter === 'all' ? tpFilteredProducts : tpFilteredProducts.slice(0, parseInt(countFilter));
+            const totalPages = Math.ceil(products.length / tpItemsPerPage);
+            if (page >= 1 && page <= totalPages) {
+                tpCurrentPage = page;
+                tpRenderTable();
+            }
+        }
+
+        // Export Excel Top Produits avec images
+        async function exportTopProduitsExcel() {
+            const products = window.tpDisplayProducts || [];
+            if (products.length === 0) {
+                showToast('❌ Aucune donnée à exporter');
+                return;
+            }
+
+            showToast('📊 Préparation de l\'export Excel...');
+
+            // Créer le workbook
+            const wb = XLSX.utils.book_new();
+
+            // Préparer les données avec images
+            const exportData = products.map((p, i) => ({
+                '#': i + 1,
+                'Produit': p.name,
+                'Quantité': p.quantity,
+                'Prix Unitaire (Dh)': p.unitPrice || '',
+                'Total (Dh)': p.totalPrice || '',
+                'Lien Image': p.image || ''
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+
+            // Définir les largeurs de colonnes
+            ws['!cols'] = [
+                { wch: 5 },   // #
+                { wch: 50 },  // Produit
+                { wch: 12 },  // Quantité
+                { wch: 18 },  // Prix Unitaire
+                { wch: 18 },  // Total
+                { wch: 60 }   // Lien Image
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Top Produits');
+
+            // Télécharger le fichier
+            const filename = `top_produits_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            showToast('✅ Export Excel réussi !');
+        }
+
+        // Export PDF avec images (capture du tableau)
+        async function exportTopProduitsAsPDF() {
+            var products = window.tpDisplayProducts || [];
+            if (products.length === 0) {
+                showToast('❌ Aucune donnée à exporter');
+                return;
+            }
+
+            showToast('📸 Génération du PDF avec images...');
+
+            // Ouvrir une nouvelle fenêtre pour l'impression
+            var printWindow = window.open('', '_blank');
+            
+            if (!printWindow) {
+                showToast('❌ Popup bloqué ! Autorise les popups pour ce site.');
+                return;
+            }
+
+            // Générer toutes les lignes du tableau
+            var tableRows = '';
+            for (var i = 0; i < products.length; i++) {
+                var p = products[i];
+                var rank = i + 1;
+                var directUrl = p.image ? convertGDriveLink(p.image) : null;
+                
+                var rankStyle = 'background: #f5f5f5;';
+                if (rank === 1) rankStyle = 'background: #FFD700; font-weight: bold;';
+                else if (rank === 2) rankStyle = 'background: #C0C0C0; font-weight: bold;';
+                else if (rank === 3) rankStyle = 'background: #CD7F32; color: white; font-weight: bold;';
+
+                var bgColor = i % 2 === 0 ? '#ffffff' : '#f9f9f9';
+                var imgHtml = directUrl 
+                    ? '<img src="' + directUrl + '" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px;">' 
+                    : '<span style="color: #ccc; font-size: 30px;">📷</span>';
+
+                tableRows += '<tr style="background: ' + bgColor + '; page-break-inside: avoid;">' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; ' + rankStyle + ' width: 40px;">' + rank + '</td>' +
+                    '<td style="padding: 5px; border: 1px solid #ddd; text-align: center; width: 100px;">' + imgHtml + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; font-size: 11px; max-width: 250px;">' + p.name + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #D32F2F; font-weight: bold; font-size: 14px; width: 70px;">' + p.quantity.toLocaleString() + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: right; width: 80px; font-size: 11px;">' + (p.unitPrice > 0 ? p.unitPrice.toLocaleString('fr-FR') + ' Dh' : '—') + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: #4caf50; font-weight: bold; width: 90px; font-size: 12px;">' + (p.totalPrice > 0 ? p.totalPrice.toLocaleString('fr-FR') + ' Dh' : '—') + '</td>' +
+                '</tr>';
+            }
+
+            // Calculer les totaux
+            var totalQty = 0;
+            var totalPrice = 0;
+            for (var j = 0; j < products.length; j++) {
+                totalQty += products[j].quantity;
+                totalPrice += products[j].totalPrice;
+            }
+
+            var dateStr = new Date().toLocaleDateString('fr-FR');
+            var dateTimeStr = new Date().toLocaleString('fr-FR');
+
+            var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+                '<title>Top Produits Vendus - ' + dateStr + '</title>' +
+                '<style>' +
+                '* { margin: 0; padding: 0; box-sizing: border-box; }' +
+                'body { font-family: Arial, sans-serif; padding: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+                '@media print { body { padding: 10px; } .no-print { display: none !important; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } thead { display: table-header-group; } @page { margin: 10mm; size: A4; } }' +
+                '.header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #D32F2F; }' +
+                '.header h1 { color: #D32F2F; font-size: 24px; margin-bottom: 5px; }' +
+                '.header p { color: #666; font-size: 12px; }' +
+                'table { width: 100%; border-collapse: collapse; font-size: 12px; }' +
+                'thead tr { background: #D32F2F !important; color: white; -webkit-print-color-adjust: exact; }' +
+                'th { padding: 10px 8px; text-align: center; font-weight: bold; border: 1px solid #b71c1c; }' +
+                '.footer { margin-top: 20px; padding-top: 15px; border-top: 2px solid #ddd; display: flex; justify-content: space-between; font-size: 14px; }' +
+                '.footer .total { font-weight: bold; color: #D32F2F; }' +
+                '.print-btn { background: #D32F2F; color: white; border: none; padding: 15px 40px; font-size: 18px; border-radius: 8px; cursor: pointer; margin: 10px; }' +
+                '.print-btn:hover { background: #b71c1c; }' +
+                '.close-btn { background: #666; color: white; border: none; padding: 15px 40px; font-size: 18px; border-radius: 8px; cursor: pointer; margin: 10px; }' +
+                '.actions { text-align: center; margin: 20px 0; padding: 20px; background: #f5f5f5; border-radius: 10px; }' +
+                '.tip { color: #666; font-size: 12px; margin-top: 10px; }' +
+                '</style></head><body>' +
+                '<div class="actions no-print">' +
+                    '<button class="print-btn" onclick="window.print()">🖨️ Imprimer / Sauvegarder PDF</button>' +
+                    '<button class="close-btn" onclick="window.close()">✖ Fermer</button>' +
+                    '<p class="tip">💡 Pour sauvegarder en PDF : cliquez sur Imprimer puis choisissez Enregistrer en PDF</p>' +
+                '</div>' +
+                '<div class="header">' +
+                    '<h1>🏆 Top Produits Vendus</h1>' +
+                    '<p>Date: ' + dateStr + ' | Total: ' + products.length + ' produits</p>' +
+                '</div>' +
+                '<table><thead><tr>' +
+                    '<th style="width: 40px;">#</th>' +
+                    '<th style="width: 100px;">Image</th>' +
+                    '<th>Produit</th>' +
+                    '<th style="width: 70px;">Quantité</th>' +
+                    '<th style="width: 80px;">Prix Unit.</th>' +
+                    '<th style="width: 90px;">Total</th>' +
+                '</tr></thead><tbody>' +
+                tableRows +
+                '</tbody></table>' +
+                '<div class="footer">' +
+                    '<div>Généré le ' + dateTimeStr + ' | EcomLik</div>' +
+                    '<div class="total">Total: ' + totalQty.toLocaleString() + ' unités | CA: ' + totalPrice.toLocaleString('fr-FR') + ' Dh</div>' +
+                '</div>' +
+                '<div class="actions no-print" style="margin-top: 30px;">' +
+                    '<button class="print-btn" onclick="window.print()">🖨️ Imprimer / Sauvegarder PDF</button>' +
+                    '<button class="close-btn" onclick="window.close()">✖ Fermer</button>' +
+                '</div>' +
+                '</body></html>';
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+            
+            showToast('✅ Page ouverte ! Attends le chargement des images puis clique sur Imprimer');
+        }
+
+        // Générer la grille d'images (20 par page)
+        function generateTopProduitsImageGrid() {
+            var products = window.tpDisplayProducts || [];
+            if (products.length === 0) {
+                showToast('❌ Aucun produit à afficher');
+                return;
+            }
+
+            document.getElementById('topProduitsGridSection').style.display = 'block';
+
+            var totalPages = Math.ceil(products.length / tpGridItemsPerPage);
+            var start = (tpGridPage - 1) * tpGridItemsPerPage;
+            var end = Math.min(start + tpGridItemsPerPage, products.length);
+            var gridProducts = products.slice(start, end);
+
+            // Afficher les infos de pagination
+            document.getElementById('gridPageInfo').textContent = 
+                'Grille ' + tpGridPage + '/' + totalPages + ' (Produits ' + (start + 1) + '-' + end + ' sur ' + products.length + ')';
+
+            // Layout 4x5 = 20 produits
+            var cols = 5;
+            if (gridProducts.length <= 4) cols = 2;
+            else if (gridProducts.length <= 9) cols = 3;
+            else if (gridProducts.length <= 16) cols = 4;
+            else cols = 5;
+
+            var container = document.getElementById('topProduitsGridContainer');
+            var html = '<div id="topProduitsGridCapture" style="background: linear-gradient(135deg, #FDB913 0%, #FFCD3C 100%); padding: 25px; border-radius: 15px;">' +
+                '<div style="text-align: center; margin-bottom: 20px;">' +
+                    '<h2 style="color: #D32F2F; margin: 0; font-size: 1.6em;">🏆 Produits Vendus - Page ' + tpGridPage + '/' + totalPages + '</h2>' +
+                    '<p style="color: #666; margin-top: 5px;">' + new Date().toLocaleDateString('fr-FR') + ' • Produits #' + (start + 1) + ' à #' + end + '</p>' +
+                '</div>' +
+                '<div style="display: grid; grid-template-columns: repeat(' + cols + ', 1fr); gap: 12px;">';
+
+            for (var i = 0; i < gridProducts.length; i++) {
+                var product = gridProducts[i];
+                var directUrl = product.image ? convertGDriveLink(product.image) : null;
+                var globalRank = start + i + 1;
+                
+                var rankBadge = '';
+                if (globalRank === 1) {
+                    rankBadge = '<div style="position: absolute; top: -6px; left: -6px; background: linear-gradient(135deg, #ffd700, #ffb700); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9em; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">🥇</div>';
+                } else if (globalRank === 2) {
+                    rankBadge = '<div style="position: absolute; top: -6px; left: -6px; background: linear-gradient(135deg, #c0c0c0, #a0a0a0); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9em; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">🥈</div>';
+                } else if (globalRank === 3) {
+                    rankBadge = '<div style="position: absolute; top: -6px; left: -6px; background: linear-gradient(135deg, #cd7f32, #b87333); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9em; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">🥉</div>';
+                } else {
+                    rankBadge = '<div style="position: absolute; top: -6px; left: -6px; background: #D32F2F; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.7em; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">' + globalRank + '</div>';
+                }
+
+                var imgHtml = directUrl 
+                    ? '<img src="' + directUrl + '" style="width: 100%; height: 100%; object-fit: cover;">' 
+                    : '<div style="font-size: 2em; color: #ccc;">📷</div>';
+
+                var productName = product.name.length > 25 ? product.name.substring(0, 22) + '...' : product.name;
+                var priceHtml = product.totalPrice > 0 ? '<div style="color: #4caf50; font-size: 0.75em; font-weight: 500;">' + product.totalPrice.toLocaleString('fr-FR') + ' Dh</div>' : '';
+
+                html += '<div style="background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 12px rgba(0,0,0,0.12); position: relative;">' +
+                    rankBadge +
+                    '<div style="width: 100%; height: 90px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden;">' +
+                        imgHtml +
+                    '</div>' +
+                    '<div style="padding: 8px; text-align: center;">' +
+                        '<div style="font-weight: bold; color: #333; font-size: 0.7em; height: 28px; overflow: hidden;">' + productName + '</div>' +
+                        '<div style="color: #D32F2F; font-weight: bold; font-size: 0.85em; margin-top: 4px;">' + product.quantity.toLocaleString() + ' vendus</div>' +
+                        priceHtml +
+                    '</div>' +
+                '</div>';
+            }
+
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+
+        // Navigation grille
+        function prevGridPage() {
+            if (tpGridPage > 1) {
+                tpGridPage--;
+                generateTopProduitsImageGrid();
+            }
+        }
+
+        function nextGridPage() {
+            const products = window.tpDisplayProducts || [];
+            const totalPages = Math.ceil(products.length / tpGridItemsPerPage);
+            if (tpGridPage < totalPages) {
+                tpGridPage++;
+                generateTopProduitsImageGrid();
+            }
+        }
+
+        // Capturer la grille Top Produits
+        async function captureTopProduitsGrid() {
+            const gridElement = document.getElementById('topProduitsGridCapture');
+            if (!gridElement) {
+                showToast('❌ Cliquez d\'abord sur "Voir Grilles Images"');
+                return;
+            }
+
+            try {
+                showToast('📸 Capture en cours...');
+                
+                // Attendre que les images soient chargées
+                const images = gridElement.querySelectorAll('img');
+                await Promise.all(Array.from(images).map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    });
+                }));
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const canvas = await html2canvas(gridElement, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    imageTimeout: 5000
+                });
+                
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        showToast('❌ Erreur de capture');
+                        return;
+                    }
+                    
+                    // Essayer de copier dans le presse-papier
+                    if (navigator.clipboard && navigator.clipboard.write) {
+                        try {
+                            await navigator.clipboard.write([
+                                new ClipboardItem({ 'image/png': blob })
+                            ]);
+                            showToast('✅ Copié ! Ouvre WhatsApp et fais Ctrl+V');
+                            return;
+                        } catch (e) {
+                            console.log('Clipboard API failed, trying fallback', e);
+                        }
+                    }
+                    
+                    // Fallback: créer une image et la copier
+                    try {
+                        const img = document.createElement('img');
+                        img.src = URL.createObjectURL(blob);
+                        
+                        const container = document.createElement('div');
+                        container.style.position = 'fixed';
+                        container.style.left = '-9999px';
+                        container.appendChild(img);
+                        document.body.appendChild(container);
+                        
+                        const range = document.createRange();
+                        range.selectNode(img);
+                        window.getSelection().removeAllRanges();
+                        window.getSelection().addRange(range);
+                        
+                        document.execCommand('copy');
+                        window.getSelection().removeAllRanges();
+                        document.body.removeChild(container);
+                        URL.revokeObjectURL(img.src);
+                        
+                        showToast('✅ Copié ! Ouvre WhatsApp et fais Ctrl+V');
+                    } catch (e2) {
+                        // Dernier recours: télécharger
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `grille_${tpGridPage}_${new Date().toISOString().slice(0, 10)}.png`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast('📥 Téléchargé ! (Le navigateur a bloqué la copie)');
+                    }
+                }, 'image/png', 1.0);
+                
+            } catch (error) {
+                console.error('Erreur capture:', error);
+                showToast('❌ Erreur: ' + error.message);
+            }
+        }
+
+        // Reset Top Produits
+        function resetTopProduits() {
+            tpAllData = [];
+            tpAllProducts = [];
+            tpFilteredProducts = [];
+            tpCurrentPage = 1;
+            document.getElementById('topProduitsFileInput').value = '';
+            document.getElementById('topProduitsFileInfo').style.display = 'none';
+            document.getElementById('topProduitsOptions').style.display = 'none';
+            document.getElementById('topProduitsStats').style.display = 'none';
+            document.getElementById('topProduitsActions').style.display = 'none';
+            document.getElementById('topProduitsListe').style.display = 'none';
+            document.getElementById('topProduitsGridSection').style.display = 'none';
+            document.getElementById('referencesPDFSection').style.display = 'none';
+            document.getElementById('topProduitsSearch').value = '';
+            showToast('🔄 Top Produits réinitialisé');
+        }
+
+        // ========== REFERENCES PDF ==========
+        
+        // Extraire la référence d'un nom de produit
+        function extractReference(productName) {
+            if (!productName) return null;
+            
+            var name = productName.toString();
+            
+            // Pattern 1: Format avec parenthèses (XX-NN) ou (X-NN) - ex: (BH-20), (H-5), (M-16)
+            var match1 = name.match(/\(([A-Z]{1,2}-\d{1,3})\)/i);
+            if (match1) return match1[1].toUpperCase();
+            
+            // Pattern 2: Format avec parenthèses (XXNN) - ex: (BH8), (BH38), (BH1)
+            var match2 = name.match(/\(([A-Z]{2}\d{1,3})\)/i);
+            if (match2) return match2[1].toUpperCase();
+            
+            // Pattern 3: Format avec parenthèses (XNN) simple lettre - ex: (A11), (D7), (C38)
+            var match3 = name.match(/\(([A-Z]\d{1,3})\)/i);
+            if (match3) return match3[1].toUpperCase();
+            
+            // Pattern 4: Format avec parenthèses complet (LK-F21), (LK-C6)
+            var match4 = name.match(/\(([A-Z]{2}-[A-Z]\d{1,3})\)/i);
+            if (match4) return match4[1].toUpperCase();
+            
+            // Pattern 5: Format L K-X-NN avec espace entre L et K - ex: tomobilL K-L-11_27
+            var match5 = name.match(/([A-Z])\s?([A-Z]-[A-Z]-\d{1,3})\s?[-_]\d*\s*$/i);
+            if (match5) return (match5[1] + match5[2]).toUpperCase();
+            
+            // Pattern 6: Format LK-X-NN_NN collé à la fin (ex: chauffageLK-I-16_21)
+            var match6 = name.match(/([A-Z]{2}-[A-Z]-\d{1,3})\s?[-_]\d*\s*$/i);
+            if (match6) return match6[1].toUpperCase();
+            
+            // Pattern 7: Format X-NN-N_NN à la fin - ex: M-22-1_23
+            var match7 = name.match(/\s([A-Z]-\d{1,2}-\d{1,2})\s?[-_]\d*\s*$/i);
+            if (match7) return match7[1].toUpperCase();
+            
+            // Pattern 8: Format X-N avec espace avant underscore - ex: I-2 _14, I-3 _14
+            var match8 = name.match(/\s([A-Z]-\d{1,3})\s+[-_]\d*\s*$/i);
+            if (match8) return match8[1].toUpperCase();
+            
+            // Pattern 9: Format LK-XNN_NN (ex: LK-G4_20, LK-C64_12)
+            var match9 = name.match(/([A-Z]{2}-[A-Z]\d{1,3})\s?[-_]\d*\s*$/i);
+            if (match9) return match9[1].toUpperCase();
+            
+            // Pattern 10: Format XX-NN_NN à la fin (ex: YS-28_15, BH-20_10)
+            var match10 = name.match(/\s([A-Z]{2}-\d{1,3})\s?[-_]\d*\s*$/i);
+            if (match10) return match10[1].toUpperCase();
+            
+            // Pattern 11: Format X-NN_NN à la fin avec espace avant (ex: H-5_13, M-16_23, I-4_14)
+            var match11 = name.match(/\s([A-Z]-\d{1,3})\s?[-_]\d*\s*$/i);
+            if (match11) return match11[1].toUpperCase();
+            
+            // Pattern 12: Chercher L K-X-NN n'importe où (avec espace entre L et K)
+            var match12 = name.match(/([A-Z])\s([A-Z]-[A-Z]-\d{1,3})/i);
+            if (match12) return (match12[1] + match12[2]).toUpperCase();
+            
+            // Pattern 13: Chercher LK-X-NN n'importe où (collé)
+            var match13 = name.match(/([A-Z]{2}-[A-Z]-\d{1,3})/i);
+            if (match13) return match13[1].toUpperCase();
+            
+            // Pattern 14: Chercher dans tout le texte LK-XNN (pas à la fin)
+            var match14 = name.match(/([A-Z]{2}-[A-Z]\d{1,3})/i);
+            if (match14) return match14[1].toUpperCase();
+            
+            return null;
+        }
+
+        // Extraire le préfixe de référence (ex: LK-I de LK-I-16, ou BH de BH8)
+        function extractReferencePrefix(ref) {
+            if (!ref) return null;
+            
+            // Format LK-X-NN -> LK-X
+            var match1 = ref.match(/^([A-Z]{2}-[A-Z])-\d/i);
+            if (match1) return match1[1].toUpperCase();
+            
+            // Format LK-XNN -> LK-X
+            var match2 = ref.match(/^([A-Z]{2}-[A-Z])\d/i);
+            if (match2) return match2[1].toUpperCase();
+            
+            // Format X-NN-N -> X (ex: M-22-1 -> M)
+            var match3 = ref.match(/^([A-Z])-\d{1,2}-\d/i);
+            if (match3) return match3[1].toUpperCase();
+            
+            // Format XX-NN -> XX (ex: BH-20 -> BH)
+            var match4 = ref.match(/^([A-Z]{2})-\d/i);
+            if (match4) return match4[1].toUpperCase();
+            
+            // Format XXNN -> XX (ex: BH8 -> BH, BH38 -> BH)
+            var match5 = ref.match(/^([A-Z]{2})\d/i);
+            if (match5) return match5[1].toUpperCase();
+            
+            // Format X-NN -> X (ex: H-5 -> H, I-2 -> I)
+            var match6 = ref.match(/^([A-Z])-\d/i);
+            if (match6) return match6[1].toUpperCase();
+            
+            // Format XNN -> X (ex: A11 -> A, D7 -> D)
+            var match7 = ref.match(/^([A-Z])\d/i);
+            if (match7) return match7[1].toUpperCase();
+            
+            return ref.toUpperCase();
+        }
+
+        // Grouper les produits par préfixe de référence
+        function groupProductsByReference() {
+            var products = window.tpDisplayProducts || [];
+            var groups = {};
+            var noRef = [];
+
+            for (var i = 0; i < products.length; i++) {
+                var p = products[i];
+                var ref = extractReference(p.name);
+                
+                if (ref) {
+                    var prefix = extractReferencePrefix(ref);
+                    if (!groups[prefix]) {
+                        groups[prefix] = {
+                            prefix: prefix,
+                            products: [],
+                            totalQty: 0,
+                            totalPrice: 0
+                        };
+                    }
+                    groups[prefix].products.push(p);
+                    groups[prefix].totalQty += p.quantity;
+                    groups[prefix].totalPrice += p.totalPrice;
+                } else {
+                    noRef.push(p);
+                }
+            }
+
+            // Ajouter les produits sans référence comme groupe séparé
+            if (noRef.length > 0) {
+                groups['SANS-REF'] = {
+                    prefix: 'SANS-REF',
+                    products: noRef,
+                    totalQty: 0,
+                    totalPrice: 0
+                };
+                for (var j = 0; j < noRef.length; j++) {
+                    groups['SANS-REF'].totalQty += noRef[j].quantity;
+                    groups['SANS-REF'].totalPrice += noRef[j].totalPrice;
+                }
+            }
+
+            return groups;
+        }
+
+        // Afficher la section des références
+        function showReferencesPDF() {
+            var groups = groupProductsByReference();
+            var keys = Object.keys(groups).sort(function(a, b) {
+                // Mettre SANS-REF à la fin
+                if (a === 'SANS-REF') return 1;
+                if (b === 'SANS-REF') return -1;
+                return a.localeCompare(b);
+            });
+            
+            if (keys.length === 0) {
+                showToast('❌ Aucun produit trouvé');
+                return;
+            }
+
+            var container = document.getElementById('referencesGrid');
+            var html = '';
+
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var group = groups[key];
+                var bgColor = key === 'SANS-REF' ? '#9e9e9e' : '#ff5722';
+                var label = key === 'SANS-REF' ? '📦 Sans Référence' : key;
+                
+                html += '<div style="background: white; border-radius: 10px; padding: 15px; border: 2px solid #ffcc80; cursor: pointer; transition: all 0.3s;" ' +
+                    'onclick="exportReferencePDF(\'' + key + '\')" ' +
+                    'onmouseover="this.style.transform=\'scale(1.02)\'; this.style.boxShadow=\'0 5px 20px rgba(0,0,0,0.2)\'" ' +
+                    'onmouseout="this.style.transform=\'scale(1)\'; this.style.boxShadow=\'none\'">' +
+                    '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">' +
+                        '<span style="background: ' + bgColor + '; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em;">' + label + '</span>' +
+                        '<span style="color: #666; font-size: 0.85em;">' + group.products.length + ' produits</span>' +
+                    '</div>' +
+                    '<div style="display: flex; justify-content: space-between; font-size: 0.85em;">' +
+                        '<span style="color: #D32F2F; font-weight: bold;">' + group.totalQty.toLocaleString() + ' unités</span>' +
+                        '<span style="color: #4caf50; font-weight: bold;">' + group.totalPrice.toLocaleString('fr-FR') + ' Dh</span>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            container.innerHTML = html;
+            document.getElementById('referencesPDFSection').style.display = 'block';
+            
+            var refCount = keys.length;
+            if (groups['SANS-REF']) refCount--;
+            showToast('✅ ' + refCount + ' références + ' + (groups['SANS-REF'] ? groups['SANS-REF'].products.length + ' sans référence' : '0 sans référence'));
+        }
+
+        // Exporter le PDF d'une référence spécifique
+        function exportReferencePDF(refPrefix) {
+            var groups = groupProductsByReference();
+            var group = groups[refPrefix];
+            
+            if (!group || group.products.length === 0) {
+                showToast('❌ Aucun produit pour cette référence');
+                return;
+            }
+
+            var displayName = refPrefix === 'SANS-REF' ? 'Sans Référence' : refPrefix;
+            showToast('📸 Génération du PDF pour ' + displayName + '...');
+
+            var printWindow = window.open('', '_blank');
+            
+            if (!printWindow) {
+                showToast('❌ Popup bloqué ! Autorise les popups.');
+                return;
+            }
+
+            var products = group.products;
+            var tableRows = '';
+            
+            for (var i = 0; i < products.length; i++) {
+                var p = products[i];
+                var rank = i + 1;
+                var directUrl = p.image ? convertGDriveLink(p.image) : null;
+                
+                var rankStyle = 'background: #f5f5f5;';
+                if (rank === 1) rankStyle = 'background: #FFD700; font-weight: bold;';
+                else if (rank === 2) rankStyle = 'background: #C0C0C0; font-weight: bold;';
+                else if (rank === 3) rankStyle = 'background: #CD7F32; color: white; font-weight: bold;';
+
+                var bgColor = i % 2 === 0 ? '#ffffff' : '#f9f9f9';
+                var imgHtml = directUrl 
+                    ? '<img src="' + directUrl + '" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px;">' 
+                    : '<span style="color: #ccc; font-size: 30px;">📷</span>';
+
+                tableRows += '<tr style="background: ' + bgColor + '; page-break-inside: avoid;">' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; ' + rankStyle + ' width: 40px;">' + rank + '</td>' +
+                    '<td style="padding: 5px; border: 1px solid #ddd; text-align: center; width: 100px;">' + imgHtml + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; font-size: 11px;">' + p.name + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: #D32F2F; font-weight: bold; font-size: 14px;">' + p.quantity.toLocaleString() + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: right;">' + (p.unitPrice > 0 ? p.unitPrice.toLocaleString('fr-FR') + ' Dh' : '—') + '</td>' +
+                    '<td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: #4caf50; font-weight: bold;">' + (p.totalPrice > 0 ? p.totalPrice.toLocaleString('fr-FR') + ' Dh' : '—') + '</td>' +
+                '</tr>';
+            }
+
+            var dateStr = new Date().toLocaleDateString('fr-FR');
+            var dateTimeStr = new Date().toLocaleString('fr-FR');
+            var headerColor = refPrefix === 'SANS-REF' ? '#9e9e9e' : '#ff5722';
+            var headerColorDark = refPrefix === 'SANS-REF' ? '#757575' : '#e64a19';
+
+            var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+                '<title>Référence ' + displayName + ' - ' + dateStr + '</title>' +
+                '<style>' +
+                '* { margin: 0; padding: 0; box-sizing: border-box; }' +
+                'body { font-family: Arial, sans-serif; padding: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
+                '@media print { body { padding: 10px; } .no-print { display: none !important; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } thead { display: table-header-group; } @page { margin: 10mm; size: A4; } }' +
+                '.header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid ' + headerColor + '; }' +
+                '.header h1 { color: ' + headerColor + '; font-size: 24px; margin-bottom: 5px; }' +
+                '.header .ref-badge { display: inline-block; background: ' + headerColor + '; color: white; padding: 8px 20px; border-radius: 25px; font-size: 20px; margin-top: 10px; }' +
+                '.header p { color: #666; font-size: 12px; margin-top: 10px; }' +
+                'table { width: 100%; border-collapse: collapse; font-size: 12px; }' +
+                'thead tr { background: ' + headerColor + ' !important; color: white; -webkit-print-color-adjust: exact; }' +
+                'th { padding: 10px 8px; text-align: center; font-weight: bold; border: 1px solid ' + headerColorDark + '; }' +
+                '.footer { margin-top: 20px; padding-top: 15px; border-top: 2px solid #ddd; display: flex; justify-content: space-between; font-size: 14px; }' +
+                '.footer .total { font-weight: bold; color: ' + headerColor + '; }' +
+                '.print-btn { background: ' + headerColor + '; color: white; border: none; padding: 15px 40px; font-size: 18px; border-radius: 8px; cursor: pointer; margin: 10px; }' +
+                '.close-btn { background: #666; color: white; border: none; padding: 15px 40px; font-size: 18px; border-radius: 8px; cursor: pointer; margin: 10px; }' +
+                '.actions { text-align: center; margin: 20px 0; padding: 20px; background: #fff3e0; border-radius: 10px; }' +
+                '</style></head><body>' +
+                '<div class="actions no-print">' +
+                    '<button class="print-btn" onclick="window.print()">🖨️ Imprimer / Sauvegarder PDF</button>' +
+                    '<button class="close-btn" onclick="window.close()">✖ Fermer</button>' +
+                '</div>' +
+                '<div class="header">' +
+                    '<h1>📑 Produits par Référence</h1>' +
+                    '<div class="ref-badge">' + (refPrefix === 'SANS-REF' ? '📦 ' : '') + displayName + '</div>' +
+                    '<p>Date: ' + dateStr + ' | ' + products.length + ' produits</p>' +
+                '</div>' +
+                '<table><thead><tr>' +
+                    '<th style="width: 40px;">#</th>' +
+                    '<th style="width: 100px;">Image</th>' +
+                    '<th>Produit</th>' +
+                    '<th style="width: 70px;">Quantité</th>' +
+                    '<th style="width: 80px;">Prix Unit.</th>' +
+                    '<th style="width: 90px;">Total</th>' +
+                '</tr></thead><tbody>' +
+                tableRows +
+                '</tbody></table>' +
+                '<div class="footer">' +
+                    '<div>Généré le ' + dateTimeStr + ' | EcomLik</div>' +
+                    '<div class="total">Total ' + displayName + ': ' + group.totalQty.toLocaleString() + ' unités | CA: ' + group.totalPrice.toLocaleString('fr-FR') + ' Dh</div>' +
+                '</div>' +
+                '<div class="actions no-print" style="margin-top: 30px;">' +
+                    '<button class="print-btn" onclick="window.print()">🖨️ Imprimer / Sauvegarder PDF</button>' +
+                    '<button class="close-btn" onclick="window.close()">✖ Fermer</button>' +
+                '</div>' +
+                '</body></html>';
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+            
+            showToast('✅ PDF ' + displayName + ' prêt !');
+        }
+
+        // Exporter tous les PDF par référence (un par un)
+        function exportAllReferencesPDF() {
+            var groups = groupProductsByReference();
+            var keys = Object.keys(groups).sort();
+            
+            if (keys.length === 0) {
+                showToast('❌ Aucune référence trouvée');
+                return;
+            }
+
+            showToast('📦 Export de ' + keys.length + ' références...');
+
+            var delay = 0;
+            for (var i = 0; i < keys.length; i++) {
+                (function(key, index) {
+                    setTimeout(function() {
+                        exportReferencePDF(key);
+                    }, delay);
+                })(keys[i], i);
+                delay += 1500; // 1.5 secondes entre chaque PDF
+            }
+
+            setTimeout(function() {
+                showToast('✅ Tous les PDF ont été générés !');
+            }, delay + 500);
+        }
+
+        // ========== FIN REFERENCES PDF ==========
+        
+        // ========== FIN TOP PRODUITS ==========
 
 </script>
 </body>
