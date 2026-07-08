@@ -423,6 +423,10 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
 </head>
 <body>
     <div class="container">
@@ -453,7 +457,10 @@
                 📊 Product Filter Pro
             </button>
             <button class="tab-btn" onclick="switchTab('topproduits')">
-                🏆 Top Produits
+                🏆 Stock Final
+            </button>
+            <button class="tab-btn" onclick="switchTab('pdfscanner')">
+                📄 PDF Scanner
             </button>
         </div>
 
@@ -579,6 +586,28 @@
                 <div id="productFilterFileInfo" style="display: none; background: #e8f5e9; padding: 10px 15px; border-radius: 8px; margin-top: 15px; color: #2e7d32; font-weight: bold;"></div>
             </div>
 
+            <!-- Option Fusionner Doublons -->
+            <div id="pfMergeOption" style="display: none; margin-bottom: 20px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 15px 20px; border-radius: 12px; border: 2px solid #2196f3;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.5em;">🔄</span>
+                        <div>
+                            <div style="font-weight: bold; color: #1565c0;">Gestion des doublons</div>
+                            <div style="font-size: 0.85em; color: #666;">Fusionner les produits identiques ou garder chaque ligne</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btnMergeOn" onclick="pfSetMergeMode(true)" class="btn" style="background: #4caf50; padding: 10px 20px;">
+                            ✅ Fusionner
+                        </button>
+                        <button id="btnMergeOff" onclick="pfSetMergeMode(false)" class="btn" style="background: #9e9e9e; padding: 10px 20px;">
+                            📋 Garder doublons
+                        </button>
+                    </div>
+                </div>
+                <div id="pfMergeInfo" style="margin-top: 10px; padding: 10px; background: white; border-radius: 8px; font-size: 0.9em; color: #666;"></div>
+            </div>
+
             <!-- Stats -->
             <div id="productFilterStats" style="display: none; margin-bottom: 20px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
@@ -644,9 +673,9 @@
         <!-- ========== ONGLET 3: TOP PRODUITS ========== -->
         <div id="tab-topproduits" class="tab-content">
         <div class="card">
-            <h2>🏆 Top Produits Vendus - Analyse Complète</h2>
+            <h2>🏆 Stock Final et Quantité - Analyse Complète</h2>
             
-            <!-- Upload Zone pour Top Produits -->
+            <!-- Upload Zone pour Stock Final -->
             <div class="upload-zone" id="topProduitsUploadZone" style="margin-bottom: 20px;">
                 <div class="upload-icon">🏆</div>
                 <p style="font-size: 1.1em; color: #333; margin-bottom: 10px;">
@@ -697,7 +726,7 @@
                 </div>
             </div>
 
-            <!-- Stats Top Produits -->
+            <!-- Stats Stock Final -->
             <div id="topProduitsStats" style="display: none; margin-bottom: 20px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
                     <div style="background: linear-gradient(135deg, #D32F2F 0%, #F44336 100%); padding: 18px; border-radius: 12px; text-align: center; color: white;">
@@ -751,17 +780,27 @@
                     <!-- Les références seront générées ici -->
                 </div>
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcc80;">
-                    <button onclick="exportAllReferencesPDF()" class="btn" style="background: linear-gradient(135deg, #e65100 0%, #ff9800 100%); width: 100%;">
-                        📦 Exporter TOUS les PDF par Référence
-                    </button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="exportAllReferencesOneExcel()" class="btn" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); flex: 1;">
+                            📊 Tout en UN Excel (Multi-Feuilles)
+                        </button>
+                        <button onclick="exportAllReferencesPDF()" class="btn" style="background: linear-gradient(135deg, #e65100 0%, #ff9800 100%); flex: 1;">
+                            📦 Tous les PDF
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Liste Top Produits -->
+            <!-- Liste Stock Final -->
             <div id="topProduitsListe" style="display: none; margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                     <h3 style="color: #D32F2F; margin: 0;">📋 Liste des Produits</h3>
-                    <span id="tpResultCount" style="color: #666;"></span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="tpResultCount" style="color: #666;"></span>
+                        <button onclick="exportListeProduitsExcel()" class="btn" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); padding: 8px 16px;">
+                            📊 Télécharger Excel
+                        </button>
+                    </div>
                 </div>
                 <div id="topProduitsTableContainer" style="overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px;">
                     <table style="width: 100%; border-collapse: collapse;">
@@ -782,7 +821,7 @@
                 <div id="tpPagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 15px; flex-wrap: wrap;"></div>
             </div>
 
-            <!-- Grille d'images Top Produits -->
+            <!-- Grille d'images Stock Final -->
             <div id="topProduitsGridSection" style="display: none; margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                     <h3 style="color: #D32F2F; margin: 0;">📸 Grilles des Produits (20 par grille)</h3>
@@ -802,6 +841,88 @@
         </div>
         </div>
         <!-- ========== FIN ONGLET 3 ========== -->
+
+        <!-- ========== ONGLET 4: PDF SCANNER DIGYLOG ========== -->
+        <div id="tab-pdfscanner" class="tab-content">
+        <div class="card">
+            <h2>📄 PDF Scanner - Analyse des Bons de Livraison DIGYLOG</h2>
+            
+            <!-- Upload Zone pour PDF -->
+            <div class="upload-zone" id="pdfScannerUploadZone" style="margin-bottom: 20px;">
+                <div class="upload-icon">📄</div>
+                <p style="font-size: 1.1em; color: #333; margin-bottom: 10px;">
+                    <strong>Glissez vos fichiers PDF DIGYLOG ici</strong>
+                </p>
+                <p style="color: #666;">Analyse automatique des bons de livraison avec calcul des quantités</p>
+                <input type="file" id="pdfScannerFileInput" accept=".pdf" multiple>
+                <div id="pdfScannerFileInfo" style="display: none; background: #e8f5e9; padding: 10px 15px; border-radius: 8px; margin-top: 15px; color: #2e7d32; font-weight: bold;"></div>
+            </div>
+
+            <!-- Stats -->
+            <div id="pdfScannerStats" style="display: none; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                    <div style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pdfTotalOrders">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Fichiers PDF</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pdfTotalProducts">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Produits uniques</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #9c27b0 0%, #ab47bc 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pdfTotalQuantity">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Quantité totale</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ff9800 0%, #ffa726 100%); padding: 20px; border-radius: 12px; text-align: center; color: white;">
+                        <div style="font-size: 2em; font-weight: bold;" id="pdfTotalAmount">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Expéditeurs</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div id="pdfScannerActions" style="display: none; margin-bottom: 20px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <select id="pdfExpeditorFilter" onchange="pdfFilterByExpeditor()" style="padding: 12px 15px; border: 2px solid #2196f3; border-radius: 8px; font-size: 1em; min-width: 200px;">
+                        <option value="all">Tous les expéditeurs</option>
+                    </select>
+                    <button class="btn" onclick="exportPdfDataExcel()" style="background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);">
+                        📥 Exporter Excel
+                    </button>
+                    <button class="btn" onclick="resetPdfScanner()" style="background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);">
+                        🔄 Réinitialiser
+                    </button>
+                </div>
+            </div>
+
+            <!-- Résumé par Expéditeur -->
+            <div id="pdfExpeditorSummary" style="display: none; margin-bottom: 20px;">
+                <h3 style="color: #2196f3; margin-bottom: 15px;">📊 Résumé par Expéditeur</h3>
+                <div id="pdfExpeditorCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <!-- Les cartes expéditeurs seront générées ici -->
+                </div>
+            </div>
+
+            <!-- Tableau des produits -->
+            <div id="pdfProductsSection" style="display: none;">
+                <h3 style="color: #2196f3; margin-bottom: 15px;">📦 Liste des Produits</h3>
+                <div style="overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 10px;">
+                    <table id="pdfProductsTable" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #2196f3; color: white; position: sticky; top: 0;">
+                                <th style="padding: 12px; text-align: center; width: 60px;">#</th>
+                                <th style="padding: 12px; text-align: left;">Produit</th>
+                                <th style="padding: 12px; text-align: center;">Quantité</th>
+                                <th style="padding: 12px; text-align: center;">Expéditeur</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pdfProductsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </div>
+        <!-- ========== FIN ONGLET 4 ========== -->
 
     </div>
 
@@ -1204,7 +1325,11 @@
                 const prixFormatted = item.prix % 1 === 0 ? Math.round(item.prix) : item.prix;
                 const montantFormatted = montant % 1 === 0 ? Math.round(montant) : montant;
                 
-                message += `${qteFormatted} ${item.produit} × ${prixFormatted} = ${montantFormatted}Dh\n`;
+                if (item.prix > 0) {
+                    message += `${qteFormatted} ${item.produit} × ${prixFormatted} = ${montantFormatted}Dh\n`;
+                } else {
+                    message += `${qteFormatted} ${item.produit}\n`;
+                }
             });
 
             // Arrondir le total
@@ -1291,7 +1416,11 @@
                     const prixFormatted = item.prix % 1 === 0 ? Math.round(item.prix) : item.prix;
                     const montantFormatted = montant % 1 === 0 ? Math.round(montant) : montant;
                     
-                    message += `${qteFormatted} ${item.produit} × ${prixFormatted} = ${montantFormatted}Dh\n`;
+                    if (item.prix > 0) {
+                        message += `${qteFormatted} ${item.produit} × ${prixFormatted} = ${montantFormatted}Dh\n`;
+                    } else {
+                        message += `${qteFormatted} ${item.produit}\n`;
+                    }
                 });
                 
                 sousTotal = Math.round(sousTotal * 100) / 100;
@@ -2517,10 +2646,14 @@
         // ========== PRODUCT FILTER PRO ==========
         let pfAllProducts = [];
         let pfFilteredProducts = [];
+        let pfRawData = []; // Données brutes sans fusion
+        let pfMergeMode = true; // true = fusionner, false = garder doublons
         let pfCurrentPage = 1;
         let pfItemsPerPage = 50;
         let pfSortColumn = 'quantity';
         let pfSortDirection = 'desc';
+        let pfProductCol = null;
+        let pfQtyCol = null;
 
         // Product Filter Upload handlers
         const pfUploadZone = document.getElementById('productFilterUploadZone');
@@ -2608,9 +2741,12 @@
                 return;
             }
 
-            // Group by product
-            const productMap = new Map();
+            // Stocker les colonnes pour réutilisation
+            pfProductCol = productCol;
+            pfQtyCol = qtyCol;
 
+            // Stocker les données brutes (sans fusion)
+            pfRawData = [];
             data.forEach(row => {
                 const product = row[productCol];
                 if (!product || String(product).trim() === '') return;
@@ -2618,29 +2754,90 @@
                 const productName = String(product).trim();
                 const qty = parseFloat(row[qtyCol]) || 0;
 
-                if (productMap.has(productName)) {
-                    productMap.get(productName).quantity += qty;
-                } else {
-                    productMap.set(productName, {
-                        product: productName,
-                        quantity: qty,
-                        reference: pfExtractReference(productName)
-                    });
-                }
+                pfRawData.push({
+                    product: productName,
+                    quantity: qty,
+                    reference: pfExtractReference(productName)
+                });
             });
 
-            pfAllProducts = Array.from(productMap.values());
-            pfFilteredProducts = [...pfAllProducts];
+            // Compter les doublons
+            var uniqueCount = new Set(pfRawData.map(p => p.product)).size;
+            var duplicateCount = pfRawData.length - uniqueCount;
 
-            pfSortProducts('quantity', 'desc');
-            pfUpdateStats();
-            pfRenderTable();
+            // Afficher l'option de fusion
+            document.getElementById('pfMergeOption').style.display = 'block';
+            document.getElementById('pfMergeInfo').innerHTML = 
+                '<strong>' + pfRawData.length + '</strong> lignes totales | ' +
+                '<strong>' + uniqueCount + '</strong> produits uniques | ' +
+                '<strong>' + duplicateCount + '</strong> doublons détectés';
+
+            // Appliquer le mode actuel
+            pfApplyMergeMode();
             
             document.getElementById('productFilterStats').style.display = 'block';
             document.getElementById('productFilterActions').style.display = 'block';
             document.getElementById('productFilterResults').style.display = 'block';
+        }
 
-            showToast(`✅ ${pfAllProducts.length} produits analysés !`);
+        // Appliquer le mode fusion
+        function pfApplyMergeMode() {
+            if (pfMergeMode) {
+                // Fusionner les doublons
+                var productMap = new Map();
+                pfRawData.forEach(function(item) {
+                    if (productMap.has(item.product)) {
+                        productMap.get(item.product).quantity += item.quantity;
+                    } else {
+                        productMap.set(item.product, {
+                            product: item.product,
+                            quantity: item.quantity,
+                            reference: item.reference
+                        });
+                    }
+                });
+                pfAllProducts = Array.from(productMap.values());
+            } else {
+                // Garder tous les doublons
+                pfAllProducts = pfRawData.map(function(item) {
+                    return {
+                        product: item.product,
+                        quantity: item.quantity,
+                        reference: item.reference
+                    };
+                });
+            }
+
+            pfFilteredProducts = pfAllProducts.slice();
+            pfCurrentPage = 1;
+            pfSortProducts('quantity', 'desc');
+            pfUpdateStats();
+            pfRenderTable();
+
+            var modeText = pfMergeMode ? 'Fusionnés' : 'Avec doublons';
+            showToast('✅ ' + pfAllProducts.length + ' produits (' + modeText + ')');
+        }
+
+        // Changer le mode fusion
+        function pfSetMergeMode(merge) {
+            pfMergeMode = merge;
+            
+            // Mettre à jour les boutons
+            var btnOn = document.getElementById('btnMergeOn');
+            var btnOff = document.getElementById('btnMergeOff');
+            
+            if (merge) {
+                btnOn.style.background = '#4caf50';
+                btnOff.style.background = '#9e9e9e';
+            } else {
+                btnOn.style.background = '#9e9e9e';
+                btnOff.style.background = '#ff9800';
+            }
+            
+            // Réappliquer si données disponibles
+            if (pfRawData.length > 0) {
+                pfApplyMergeMode();
+            }
         }
 
         // Extract reference from product name
@@ -2846,6 +3043,8 @@
         function resetProductFilter() {
             pfAllProducts = [];
             pfFilteredProducts = [];
+            pfRawData = [];
+            pfMergeMode = true;
             pfCurrentPage = 1;
             document.getElementById('pfSearchInput').value = '';
             document.getElementById('productFilterFileInput').value = '';
@@ -2853,6 +3052,10 @@
             document.getElementById('productFilterStats').style.display = 'none';
             document.getElementById('productFilterActions').style.display = 'none';
             document.getElementById('productFilterResults').style.display = 'none';
+            document.getElementById('pfMergeOption').style.display = 'none';
+            // Réinitialiser les boutons
+            document.getElementById('btnMergeOn').style.background = '#4caf50';
+            document.getElementById('btnMergeOff').style.background = '#9e9e9e';
             showToast('🔄 Product Filter réinitialisé');
         }
         // ========== FIN PRODUCT FILTER PRO ==========
@@ -2869,7 +3072,7 @@
         let tpGridPage = 1;
         let tpGridItemsPerPage = 20; // 20 produits par grille
 
-        // Upload handlers Top Produits
+        // Upload handlers Stock Final
         const tpUploadZone = document.getElementById('topProduitsUploadZone');
         const tpFileInput = document.getElementById('topProduitsFileInput');
 
@@ -2900,7 +3103,7 @@
             if (file) tpProcessFile(file);
         });
 
-        // Process file Top Produits
+        // Process file Stock Final
         function tpProcessFile(file) {
             if (!file.name.match(/\.(xlsx|xls)$/i)) {
                 showToast('❌ Format invalide. Utilisez .xlsx ou .xls');
@@ -2970,7 +3173,7 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // Analyser les données Top Produits
+        // Analyser les données Stock Final
         function tpAnalyzeData() {
             // Colonnes spécifiques du fichier EcomLik
             const productCols = ['Produit', 'Product', 'Nom', 'Name', 'Article', 'Désignation'];
@@ -3063,7 +3266,7 @@
             showToast(`✅ ${tpAllData.length} lignes analysées ! ${Object.keys(tpProductImages).length} images trouvées`);
         }
 
-        // Mettre à jour la liste Top Produits
+        // Mettre à jour la liste Stock Final
         function updateTopProduitsGrid() {
             const { productCol, qtyCol, priceCol, locationCol, imageCol } = window.tpColumns || {};
             if (!productCol) return;
@@ -3281,7 +3484,7 @@
             }
         }
 
-        // Export Excel Top Produits avec images
+        // Export Excel Stock Final avec images
         async function exportTopProduitsExcel() {
             const products = window.tpDisplayProducts || [];
             if (products.length === 0) {
@@ -3316,7 +3519,7 @@
                 { wch: 60 }   // Lien Image
             ];
 
-            XLSX.utils.book_append_sheet(wb, ws, 'Top Produits');
+            XLSX.utils.book_append_sheet(wb, ws, 'Stock Final');
 
             // Télécharger le fichier
             const filename = `top_produits_${new Date().toISOString().slice(0, 10)}.xlsx`;
@@ -3381,7 +3584,7 @@
             var dateTimeStr = new Date().toLocaleString('fr-FR');
 
             var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-                '<title>Top Produits Vendus - ' + dateStr + '</title>' +
+                '<title>Stock Final et Quantité - ' + dateStr + '</title>' +
                 '<style>' +
                 '* { margin: 0; padding: 0; box-sizing: border-box; }' +
                 'body { font-family: Arial, sans-serif; padding: 20px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }' +
@@ -3406,7 +3609,7 @@
                     '<p class="tip">💡 Pour sauvegarder en PDF : cliquez sur Imprimer puis choisissez Enregistrer en PDF</p>' +
                 '</div>' +
                 '<div class="header">' +
-                    '<h1>🏆 Top Produits Vendus</h1>' +
+                    '<h1>🏆 Stock Final et Quantité</h1>' +
                     '<p>Date: ' + dateStr + ' | Total: ' + products.length + ' produits</p>' +
                 '</div>' +
                 '<table><thead><tr>' +
@@ -3464,7 +3667,7 @@
             var container = document.getElementById('topProduitsGridContainer');
             var html = '<div id="topProduitsGridCapture" style="background: linear-gradient(135deg, #FDB913 0%, #FFCD3C 100%); padding: 25px; border-radius: 15px;">' +
                 '<div style="text-align: center; margin-bottom: 20px;">' +
-                    '<h2 style="color: #D32F2F; margin: 0; font-size: 1.6em;">🏆 Produits Vendus - Page ' + tpGridPage + '/' + totalPages + '</h2>' +
+                    '<h2 style="color: #D32F2F; margin: 0; font-size: 1.6em;">🏆 Stock Final - Page ' + tpGridPage + '/' + totalPages + '</h2>' +
                     '<p style="color: #666; margin-top: 5px;">' + new Date().toLocaleDateString('fr-FR') + ' • Produits #' + (start + 1) + ' à #' + end + '</p>' +
                 '</div>' +
                 '<div style="display: grid; grid-template-columns: repeat(' + cols + ', 1fr); gap: 12px;">';
@@ -3499,7 +3702,7 @@
                     '</div>' +
                     '<div style="padding: 8px; text-align: center;">' +
                         '<div style="font-weight: bold; color: #333; font-size: 0.7em; height: 28px; overflow: hidden;">' + productName + '</div>' +
-                        '<div style="color: #D32F2F; font-weight: bold; font-size: 0.85em; margin-top: 4px;">' + product.quantity.toLocaleString() + ' vendus</div>' +
+                        '<div style="color: #D32F2F; font-weight: bold; font-size: 0.85em; margin-top: 4px;">' + product.quantity.toLocaleString() + ' unités</div>' +
                         priceHtml +
                     '</div>' +
                 '</div>';
@@ -3526,7 +3729,7 @@
             }
         }
 
-        // Capturer la grille Top Produits
+        // Capturer la grille Stock Final
         async function captureTopProduitsGrid() {
             const gridElement = document.getElementById('topProduitsGridCapture');
             if (!gridElement) {
@@ -3617,7 +3820,7 @@
             }
         }
 
-        // Reset Top Produits
+        // Reset Stock Final
         function resetTopProduits() {
             tpAllData = [];
             tpAllProducts = [];
@@ -3632,7 +3835,7 @@
             document.getElementById('topProduitsGridSection').style.display = 'none';
             document.getElementById('referencesPDFSection').style.display = 'none';
             document.getElementById('topProduitsSearch').value = '';
-            showToast('🔄 Top Produits réinitialisé');
+            showToast('🔄 Stock Final réinitialisé');
         }
 
         // ========== REFERENCES PDF ==========
@@ -3698,6 +3901,30 @@
             // Pattern 14: Chercher dans tout le texte LK-XNN (pas à la fin)
             var match14 = name.match(/([A-Z]{2}-[A-Z]\d{1,3})/i);
             if (match14) return match14[1].toUpperCase();
+            
+            // Pattern 15: Format X-NN n'importe où avec espaces autour (ex: " M-3 ", " H-28 ")
+            var match15 = name.match(/\s([A-Z]-\d{1,3})\s/i);
+            if (match15) return match15[1].toUpperCase();
+            
+            // Pattern 16: Format X-NN à la fin du texte (ex: "sofa M-3", "mètres H-28")
+            var match16 = name.match(/\s([A-Z]-\d{1,3})$/i);
+            if (match16) return match16[1].toUpperCase();
+            
+            // Pattern 17: Format XX-NN n'importe où avec espaces (ex: " BH-20 ")
+            var match17 = name.match(/\s([A-Z]{2}-\d{1,3})\s/i);
+            if (match17) return match17[1].toUpperCase();
+            
+            // Pattern 18: Format XX-NN à la fin (ex: "produit BH-20")
+            var match18 = name.match(/\s([A-Z]{2}-\d{1,3})$/i);
+            if (match18) return match18[1].toUpperCase();
+            
+            // Pattern 19: Format X-NN n'importe où (même collé, dernier recours)
+            var match19 = name.match(/([A-Z]-\d{1,3})/i);
+            if (match19) return match19[1].toUpperCase();
+            
+            // Pattern 20: Format XX-NN n'importe où (même collé, dernier recours)
+            var match20 = name.match(/([A-Z]{2}-\d{1,3})/i);
+            if (match20) return match20[1].toUpperCase();
             
             return null;
         }
@@ -3806,17 +4033,20 @@
                 var bgColor = key === 'SANS-REF' ? '#9e9e9e' : '#ff5722';
                 var label = key === 'SANS-REF' ? '📦 Sans Référence' : key;
                 
-                html += '<div style="background: white; border-radius: 10px; padding: 15px; border: 2px solid #ffcc80; cursor: pointer; transition: all 0.3s;" ' +
-                    'onclick="exportReferencePDF(\'' + key + '\')" ' +
-                    'onmouseover="this.style.transform=\'scale(1.02)\'; this.style.boxShadow=\'0 5px 20px rgba(0,0,0,0.2)\'" ' +
-                    'onmouseout="this.style.transform=\'scale(1)\'; this.style.boxShadow=\'none\'">' +
+                html += '<div style="background: white; border-radius: 10px; padding: 15px; border: 2px solid #ffcc80; transition: all 0.3s;">' +
                     '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">' +
                         '<span style="background: ' + bgColor + '; color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em;">' + label + '</span>' +
                         '<span style="color: #666; font-size: 0.85em;">' + group.products.length + ' produits</span>' +
                     '</div>' +
-                    '<div style="display: flex; justify-content: space-between; font-size: 0.85em;">' +
+                    '<div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 10px;">' +
                         '<span style="color: #D32F2F; font-weight: bold;">' + group.totalQty.toLocaleString() + ' unités</span>' +
                         '<span style="color: #4caf50; font-weight: bold;">' + group.totalPrice.toLocaleString('fr-FR') + ' Dh</span>' +
+                    '</div>' +
+                    '<div style="display: flex; gap: 8px;">' +
+                        '<button onclick="exportReferenceExcel(\'' + key + '\')" style="flex: 1; background: #4caf50; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold;" ' +
+                            'onmouseover="this.style.background=\'#45a049\'" onmouseout="this.style.background=\'#4caf50\'">📊 Excel</button>' +
+                        '<button onclick="exportReferencePDF(\'' + key + '\')" style="flex: 1; background: #ff5722; color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: bold;" ' +
+                            'onmouseover="this.style.background=\'#e64a19\'" onmouseout="this.style.background=\'#ff5722\'">📄 PDF</button>' +
                     '</div>' +
                 '</div>';
             }
@@ -3827,6 +4057,447 @@
             var refCount = keys.length;
             if (groups['SANS-REF']) refCount--;
             showToast('✅ ' + refCount + ' références + ' + (groups['SANS-REF'] ? groups['SANS-REF'].products.length + ' sans référence' : '0 sans référence'));
+        }
+
+        // Exporter Excel d'une référence spécifique avec liens photos cliquables
+        function exportReferenceExcel(refPrefix) {
+            var groups = groupProductsByReference();
+            var group = groups[refPrefix];
+            
+            if (!group || group.products.length === 0) {
+                showToast('❌ Aucun produit dans cette référence');
+                return;
+            }
+
+            var displayName = refPrefix === 'SANS-REF' ? 'Sans Référence' : refPrefix;
+            showToast('📊 Export Excel de ' + displayName + '...');
+
+            var wb = XLSX.utils.book_new();
+            
+            // Préparer les données avec hyperliens
+            var data = [];
+            
+            // En-têtes
+            data.push(['#', 'Nom du Produit', 'Référence', 'Quantité', 'Prix Unitaire', 'Prix Total', 'Lien Photo']);
+            
+            // Ajouter les produits
+            for (var i = 0; i < group.products.length; i++) {
+                var p = group.products[i];
+                var photoLink = p.image || '';
+                
+                // Extraire la référence du nom du produit
+                var productRef = extractReference(p.name);
+                if (!productRef && refPrefix === 'SANS-REF') {
+                    productRef = 'SANS-REF';
+                } else if (!productRef) {
+                    productRef = refPrefix;
+                }
+                
+                data.push([
+                    i + 1,
+                    p.name || '',
+                    productRef,
+                    p.quantity || 0,
+                    p.unitPrice || 0,
+                    p.totalPrice || 0,
+                    photoLink
+                ]);
+            }
+            
+            // Ligne de total
+            data.push([
+                '',
+                'TOTAL',
+                '',
+                group.totalQty,
+                '',
+                group.totalPrice,
+                ''
+            ]);
+            
+            // Créer la feuille
+            var ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Définir la largeur des colonnes
+            ws['!cols'] = [
+                {wch: 5},   // #
+                {wch: 40},  // Nom
+                {wch: 15},  // Référence
+                {wch: 10},  // Quantité
+                {wch: 12},  // Prix Unit.
+                {wch: 12},  // Prix Total
+                {wch: 50}   // Lien Photo
+            ];
+            
+            // Ajouter des hyperliens pour les photos
+            for (var i = 1; i < data.length - 1; i++) { // -1 pour ne pas inclure la ligne TOTAL
+                var photoLink = data[i][6];
+                if (photoLink && photoLink.trim() !== '') {
+                    var cellAddress = 'G' + (i + 1); // Colonne G (Lien Photo)
+                    if (!ws[cellAddress]) ws[cellAddress] = {};
+                    ws[cellAddress].l = { Target: photoLink, Tooltip: "Cliquer pour voir la photo" };
+                    ws[cellAddress].s = {
+                        font: { color: { rgb: "0563C1" }, underline: true }
+                    };
+                }
+            }
+            
+            // Style pour les en-têtes
+            var headerRange = XLSX.utils.decode_range(ws['!ref']);
+            for (var col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                var cellAddress = XLSX.utils.encode_cell({r: 0, c: col});
+                if (!ws[cellAddress]) continue;
+                ws[cellAddress].s = {
+                    font: { bold: true, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "D32F2F" } },
+                    alignment: { horizontal: "center", vertical: "center" }
+                };
+            }
+            
+            // Style pour la ligne de total
+            var lastRow = data.length - 1;
+            for (var col = 0; col < 7; col++) {
+                var cellAddress = XLSX.utils.encode_cell({r: lastRow, c: col});
+                if (!ws[cellAddress]) continue;
+                ws[cellAddress].s = {
+                    font: { bold: true },
+                    fill: { fgColor: { rgb: "FFE0B2" } }
+                };
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws, displayName.substring(0, 31));
+            
+            // Télécharger le fichier
+            var fileName = 'Reference_' + displayName.replace(/[^a-zA-Z0-9]/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+            
+            showToast('✅ Excel exporté : ' + displayName);
+        }
+
+        // Exporter TOUTES les références en UN SEUL fichier Excel (2 feuilles)
+        function exportAllReferencesOneExcel() {
+            var groups = groupProductsByReference();
+            var keys = Object.keys(groups);
+            
+            if (keys.length === 0) {
+                showToast('❌ Aucune donnée à exporter');
+                return;
+            }
+
+            showToast('📊 Création du fichier Excel...');
+
+            var wb = XLSX.utils.book_new();
+            
+            // FEUILLE 1 : TOUTES LES RÉFÉRENCES (sauf SANS-REF)
+            var allReferencesProducts = [];
+            var allRefsTotalQty = 0;
+            var allRefsTotalPrice = 0;
+            
+            for (var k = 0; k < keys.length; k++) {
+                var refPrefix = keys[k];
+                if (refPrefix === 'SANS-REF') continue; // Skip SANS-REF pour la première feuille
+                
+                var group = groups[refPrefix];
+                allReferencesProducts = allReferencesProducts.concat(group.products);
+                allRefsTotalQty += group.totalQty;
+                allRefsTotalPrice += group.totalPrice;
+            }
+            
+            // Créer la première feuille avec toutes les références
+            if (allReferencesProducts.length > 0) {
+                var data1 = [];
+                
+                // En-têtes
+                data1.push(['#', 'Nom du Produit', 'Référence', 'Quantité', 'Prix Unitaire', 'Prix Total', 'Lien Photo']);
+                
+                // Ajouter tous les produits avec référence
+                for (var i = 0; i < allReferencesProducts.length; i++) {
+                    var p = allReferencesProducts[i];
+                    var photoLink = p.image || '';
+                    
+                    // Extraire la référence du nom du produit
+                    var productRef = extractReference(p.name) || '';
+                    
+                    data1.push([
+                        i + 1,
+                        p.name || '',
+                        productRef,
+                        p.quantity || 0,
+                        p.unitPrice || 0,
+                        p.totalPrice || 0,
+                        photoLink
+                    ]);
+                }
+                
+                // Ligne de total
+                data1.push([
+                    '',
+                    'TOTAL',
+                    '',
+                    allRefsTotalQty,
+                    '',
+                    allRefsTotalPrice,
+                    ''
+                ]);
+                
+                // Créer la feuille
+                var ws1 = XLSX.utils.aoa_to_sheet(data1);
+                
+                // Définir la largeur des colonnes
+                ws1['!cols'] = [
+                    {wch: 5},   // #
+                    {wch: 50},  // Nom
+                    {wch: 15},  // Référence
+                    {wch: 10},  // Quantité
+                    {wch: 12},  // Prix Unit.
+                    {wch: 12},  // Prix Total
+                    {wch: 70}   // Lien Photo
+                ];
+                
+                // Ajouter des hyperliens pour les photos
+                for (var i = 1; i < data1.length - 1; i++) {
+                    var photoLink = data1[i][6];
+                    if (photoLink && photoLink.trim() !== '') {
+                        var cellAddress = 'G' + (i + 1);
+                        if (!ws1[cellAddress]) ws1[cellAddress] = {};
+                        ws1[cellAddress].l = { Target: photoLink, Tooltip: "Cliquer pour voir la photo" };
+                        ws1[cellAddress].s = {
+                            font: { color: { rgb: "0563C1" }, underline: true }
+                        };
+                    }
+                }
+                
+                // Style pour les en-têtes
+                var headerRange = XLSX.utils.decode_range(ws1['!ref']);
+                for (var col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                    var cellAddress = XLSX.utils.encode_cell({r: 0, c: col});
+                    if (!ws1[cellAddress]) continue;
+                    ws1[cellAddress].s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "4CAF50" } },
+                        alignment: { horizontal: "center", vertical: "center" }
+                    };
+                }
+                
+                // Style pour la ligne de total
+                var lastRow1 = data1.length - 1;
+                for (var col = 0; col < 7; col++) {
+                    var cellAddress = XLSX.utils.encode_cell({r: lastRow1, c: col});
+                    if (!ws1[cellAddress]) continue;
+                    ws1[cellAddress].s = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "C8E6C9" } }
+                    };
+                }
+                
+                XLSX.utils.book_append_sheet(wb, ws1, 'Toutes les References');
+            }
+            
+            // FEUILLE 2 : SANS-REF
+            if (groups['SANS-REF']) {
+                var noRefGroup = groups['SANS-REF'];
+                var data2 = [];
+                
+                // En-têtes
+                data2.push(['#', 'Nom du Produit', 'Référence', 'Quantité', 'Prix Unitaire', 'Prix Total', 'Lien Photo']);
+                
+                // Ajouter les produits sans référence
+                for (var i = 0; i < noRefGroup.products.length; i++) {
+                    var p = noRefGroup.products[i];
+                    var photoLink = p.image || '';
+                    
+                    data2.push([
+                        i + 1,
+                        p.name || '',
+                        'SANS-REF',
+                        p.quantity || 0,
+                        p.unitPrice || 0,
+                        p.totalPrice || 0,
+                        photoLink
+                    ]);
+                }
+                
+                // Ligne de total
+                data2.push([
+                    '',
+                    'TOTAL',
+                    '',
+                    noRefGroup.totalQty,
+                    '',
+                    noRefGroup.totalPrice,
+                    ''
+                ]);
+                
+                // Créer la feuille
+                var ws2 = XLSX.utils.aoa_to_sheet(data2);
+                
+                // Définir la largeur des colonnes
+                ws2['!cols'] = [
+                    {wch: 5},   // #
+                    {wch: 50},  // Nom
+                    {wch: 15},  // Référence
+                    {wch: 10},  // Quantité
+                    {wch: 12},  // Prix Unit.
+                    {wch: 12},  // Prix Total
+                    {wch: 70}   // Lien Photo
+                ];
+                
+                // Ajouter des hyperliens pour les photos
+                for (var i = 1; i < data2.length - 1; i++) {
+                    var photoLink = data2[i][6];
+                    if (photoLink && photoLink.trim() !== '') {
+                        var cellAddress = 'G' + (i + 1);
+                        if (!ws2[cellAddress]) ws2[cellAddress] = {};
+                        ws2[cellAddress].l = { Target: photoLink, Tooltip: "Cliquer pour voir la photo" };
+                        ws2[cellAddress].s = {
+                            font: { color: { rgb: "0563C1" }, underline: true }
+                        };
+                    }
+                }
+                
+                // Style pour les en-têtes
+                var headerRange = XLSX.utils.decode_range(ws2['!ref']);
+                for (var col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                    var cellAddress = XLSX.utils.encode_cell({r: 0, c: col});
+                    if (!ws2[cellAddress]) continue;
+                    ws2[cellAddress].s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "FF5722" } },
+                        alignment: { horizontal: "center", vertical: "center" }
+                    };
+                }
+                
+                // Style pour la ligne de total
+                var lastRow2 = data2.length - 1;
+                for (var col = 0; col < 7; col++) {
+                    var cellAddress = XLSX.utils.encode_cell({r: lastRow2, c: col});
+                    if (!ws2[cellAddress]) continue;
+                    ws2[cellAddress].s = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "FFCCBC" } }
+                    };
+                }
+                
+                XLSX.utils.book_append_sheet(wb, ws2, 'Sans Reference');
+            }
+            
+            // Télécharger le fichier
+            var fileName = 'Stock_References_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+            
+            showToast('✅ Excel créé avec 2 feuilles : Références + Sans-Ref !');
+        }
+
+        // Exporter la liste complète des produits en Excel avec liens photos
+        function exportListeProduitsExcel() {
+            var products = window.tpDisplayProducts || [];
+            
+            if (products.length === 0) {
+                showToast('❌ Aucun produit à exporter');
+                return;
+            }
+
+            showToast('📊 Export Excel de la liste complète...');
+
+            var wb = XLSX.utils.book_new();
+            var data = [];
+            
+            // En-têtes
+            data.push(['#', 'Nom du Produit', 'Référence', 'Quantité', 'Prix Unitaire', 'Prix Total', 'Lien Photo']);
+            
+            // Ajouter tous les produits
+            var totalQty = 0;
+            var totalPrice = 0;
+            
+            for (var i = 0; i < products.length; i++) {
+                var p = products[i];
+                var photoLink = p.image || '';
+                
+                // Extraire la référence du nom du produit
+                var productRef = extractReference(p.name) || 'SANS-REF';
+                
+                totalQty += p.quantity || 0;
+                totalPrice += p.totalPrice || 0;
+                
+                data.push([
+                    i + 1,
+                    p.name || '',
+                    productRef,
+                    p.quantity || 0,
+                    p.unitPrice || 0,
+                    p.totalPrice || 0,
+                    photoLink
+                ]);
+            }
+            
+            // Ligne de total
+            data.push([
+                '',
+                'TOTAL',
+                '',
+                totalQty,
+                '',
+                totalPrice,
+                ''
+            ]);
+            
+            // Créer la feuille
+            var ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Définir la largeur des colonnes
+            ws['!cols'] = [
+                {wch: 5},   // #
+                {wch: 50},  // Nom
+                {wch: 15},  // Référence
+                {wch: 10},  // Quantité
+                {wch: 12},  // Prix Unit.
+                {wch: 12},  // Prix Total
+                {wch: 70}   // Lien Photo
+            ];
+            
+            // Ajouter des hyperliens pour les photos
+            for (var i = 1; i < data.length - 1; i++) {
+                var photoLink = data[i][6];
+                if (photoLink && photoLink.trim() !== '') {
+                    var cellAddress = 'G' + (i + 1);
+                    if (!ws[cellAddress]) ws[cellAddress] = {};
+                    ws[cellAddress].l = { Target: photoLink, Tooltip: "Cliquer pour voir la photo" };
+                    ws[cellAddress].s = {
+                        font: { color: { rgb: "0563C1" }, underline: true }
+                    };
+                }
+            }
+            
+            // Style pour les en-têtes
+            var headerRange = XLSX.utils.decode_range(ws['!ref']);
+            for (var col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                var cellAddress = XLSX.utils.encode_cell({r: 0, c: col});
+                if (!ws[cellAddress]) continue;
+                ws[cellAddress].s = {
+                    font: { bold: true, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "D32F2F" } },
+                    alignment: { horizontal: "center", vertical: "center" }
+                };
+            }
+            
+            // Style pour la ligne de total
+            var lastRow = data.length - 1;
+            for (var col = 0; col < 7; col++) {
+                var cellAddress = XLSX.utils.encode_cell({r: lastRow, c: col});
+                if (!ws[cellAddress]) continue;
+                ws[cellAddress].s = {
+                    font: { bold: true },
+                    fill: { fgColor: { rgb: "FFCDD2" } }
+                };
+            }
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Liste Produits');
+            
+            // Télécharger le fichier
+            var fileName = 'Liste_Produits_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+            XLSX.writeFile(wb, fileName);
+            
+            showToast('✅ Excel exporté : ' + products.length + ' produits !');
         }
 
         // Exporter le PDF d'une référence spécifique
@@ -3966,6 +4637,475 @@
         // ========== FIN REFERENCES PDF ==========
         
         // ========== FIN TOP PRODUITS ==========
+
+        // ========== PDF SCANNER DIGYLOG ==========
+        var pdfAllProducts = [];
+        var pdfFilteredProducts = [];
+        var pdfExpeditors = {};
+        var pdfRawData = [];
+
+        // Upload handlers pour PDF Scanner
+        var pdfUploadZone = document.getElementById('pdfScannerUploadZone');
+        var pdfFileInput = document.getElementById('pdfScannerFileInput');
+
+        if (pdfUploadZone) {
+            pdfUploadZone.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'INPUT') {
+                    pdfFileInput.click();
+                }
+            });
+
+            pdfUploadZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                pdfUploadZone.style.borderColor = '#2196f3';
+                pdfUploadZone.style.background = '#e3f2fd';
+            });
+
+            pdfUploadZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                pdfUploadZone.style.borderColor = '#D32F2F';
+                pdfUploadZone.style.background = '';
+            });
+
+            pdfUploadZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                pdfUploadZone.style.borderColor = '#D32F2F';
+                pdfUploadZone.style.background = '';
+                var files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    pdfProcessFiles(files);
+                }
+            });
+
+            pdfFileInput.addEventListener('change', function(e) {
+                var files = e.target.files;
+                if (files.length > 0) {
+                    pdfProcessFiles(files);
+                }
+            });
+        }
+
+        // Traiter les fichiers PDF
+        async function pdfProcessFiles(files) {
+            var fileInfo = document.getElementById('pdfScannerFileInfo');
+            fileInfo.textContent = '📄 ' + files.length + ' fichier(s) en cours de traitement...';
+            fileInfo.style.display = 'block';
+
+            pdfAllProducts = [];
+            pdfExpeditors = {};
+            pdfRawData = [];
+
+            for (var i = 0; i < files.length; i++) {
+                var file = files[i];
+                if (file.type === 'application/pdf') {
+                    await pdfExtractSummaryPages(file);
+                }
+            }
+
+            fileInfo.textContent = '✅ ' + files.length + ' fichier(s) traité(s)';
+            pdfAnalyzeData();
+        }
+
+        // Vérifier si une page est une page de récapitulatif (première page avec liste)
+        function isRecapPage(pageText) {
+            // Page de récapitulatif = contient "Orders)" et SKU/QTÉ
+            var hasOrdersHeader = pageText.match(/\d+\s*Orders\)/i);
+            var hasSkuHeader = pageText.indexOf('SKU') !== -1;
+            
+            // Si c'est un bon de livraison (contient Destinataire, Hub, DH)
+            var hasDeliveryInfo = pageText.indexOf('Destinataire') !== -1 || 
+                                  pageText.indexOf('Expéditeur :') !== -1 ||
+                                  pageText.match(/\d+\s*DH/);
+            
+            // C'est une page recap si elle a le header Orders et pas d'info livraison
+            return (hasOrdersHeader || hasSkuHeader) && !hasDeliveryInfo;
+        }
+
+        // Extraire les données de toutes les pages de récapitulatif
+        async function pdfExtractSummaryPages(file) {
+            try {
+                var arrayBuffer = await file.arrayBuffer();
+                var pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+                var numPages = pdf.numPages;
+
+                var allProducts = [];
+                var expeditor = 'Inconnu';
+                var recapPagesData = [];
+
+                console.log('=== Analyse de ' + file.name + ' (' + numPages + ' pages) ===');
+
+                // Parcourir toutes les pages
+                for (var pageNum = 1; pageNum <= numPages; pageNum++) {
+                    var page = await pdf.getPage(pageNum);
+                    var textContent = await page.getTextContent();
+                    
+                    // Construire le texte complet de la page
+                    var fullText = textContent.items.map(function(item) { return item.str; }).join(' ');
+                    
+                    console.log('Page ' + pageNum + ':', fullText.substring(0, 100));
+
+                    // Vérifier si c'est une page de récapitulatif
+                    if (isRecapPage(fullText)) {
+                        console.log('  -> Page de récapitulatif');
+                        recapPagesData.push({
+                            pageNum: pageNum,
+                            items: textContent.items,
+                            fullText: fullText
+                        });
+                    } else {
+                        console.log('  -> Page ignorée (bon de livraison)');
+                    }
+                }
+
+                console.log('Pages récap trouvées: ' + recapPagesData.length);
+
+                // Extraire l'expéditeur de chaque page recap
+                for (var i = 0; i < recapPagesData.length; i++) {
+                    var pageData = recapPagesData[i];
+                    var expFound = extractExpeditorFromText(pageData.fullText);
+                    if (expFound && expFound !== 'Inconnu') {
+                        expeditor = expFound;
+                        console.log('Expéditeur trouvé: ' + expeditor);
+                    }
+                }
+
+                // Extraire les produits de chaque page
+                for (var i = 0; i < recapPagesData.length; i++) {
+                    var pageData = recapPagesData[i];
+                    var products = extractProductsFromItems(pageData.items);
+                    console.log('Page ' + pageData.pageNum + ': ' + products.length + ' produits');
+                    
+                    products.forEach(function(p) {
+                        allProducts.push({
+                            name: p.name,
+                            quantity: p.quantity,
+                            expeditor: expeditor
+                        });
+                    });
+                }
+
+                console.log('Total produits: ' + allProducts.length + ', Expéditeur: ' + expeditor);
+
+                // Stocker
+                pdfRawData.push({
+                    file: file.name,
+                    expeditor: expeditor,
+                    recapPages: recapPagesData.length,
+                    products: allProducts
+                });
+
+                // Ajouter aux produits globaux
+                allProducts.forEach(function(p) {
+                    pdfAddProduct(p.name, p.quantity, p.expeditor);
+                });
+
+            } catch (error) {
+                console.error('Erreur PDF:', error);
+                showToast('❌ Erreur: ' + error.message);
+            }
+        }
+
+        // Extraire l'expéditeur depuis le texte (format: nom 20-12-2025 17:03)
+        function extractExpeditorFromText(text) {
+            // Pattern: mot_latin suivi de date DD-MM-YYYY HH:MM
+            var match = text.match(/([a-zA-Z][a-zA-Z0-9_-]*)\s+\d{2}-\d{2}-\d{4}\s+\d{2}:\d{2}/);
+            if (match) {
+                var name = match[1].toLowerCase();
+                // Ignorer les mots-clés
+                if (name !== 'sku' && name !== 'qte' && name !== 'qté') {
+                    return match[1];
+                }
+            }
+            return null;
+        }
+
+        // Extraire les produits depuis les items PDF.js
+        function extractProductsFromItems(items) {
+            var products = [];
+            
+            // Grouper les items par ligne (même Y approximatif)
+            var lineGroups = {};
+            items.forEach(function(item) {
+                var y = Math.round(item.transform[5] / 15) * 15;
+                if (!lineGroups[y]) {
+                    lineGroups[y] = [];
+                }
+                lineGroups[y].push({
+                    text: item.str,
+                    x: item.transform[0]
+                });
+            });
+
+            // Trier les Y du haut vers le bas
+            var sortedYs = Object.keys(lineGroups).map(Number).sort(function(a, b) { return b - a; });
+
+            sortedYs.forEach(function(y) {
+                var lineItems = lineGroups[y];
+                // Trier par X
+                lineItems.sort(function(a, b) { return a.x - b.x; });
+                
+                // Joindre le texte de la ligne
+                var lineText = lineItems.map(function(item) { return item.text; }).join('');
+                
+                // Ignorer les headers et metadata
+                if (lineText.match(/^SKU|^QTÉ|^QTE|Orders\)|^\d{6,}/i)) {
+                    return;
+                }
+                
+                // Ignorer les lignes expéditeur (nom + date)
+                if (lineText.match(/[a-zA-Z]+\s*\d{2}-\d{2}-\d{4}/)) {
+                    return;
+                }
+                
+                // Chercher du texte arabe avec quantité collée à la fin
+                // Format: "نص عربي1" ou "نص عربي 2"
+                var hasArabic = lineText.match(/[\u0600-\u06FF]/);
+                
+                if (hasArabic) {
+                    // Extraire la quantité (chiffre à la fin)
+                    var qtyMatch = lineText.match(/(\d+)\s*$/);
+                    var quantity = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                    
+                    // Enlever la quantité du nom
+                    var productName = lineText.replace(/\d+\s*$/, '').trim();
+                    
+                    // Nettoyer le nom (enlever espaces multiples)
+                    productName = productName.replace(/\s+/g, ' ').trim();
+                    
+                    if (productName.length >= 3) {
+                        products.push({
+                            name: productName,
+                            quantity: quantity
+                        });
+                        console.log('  Produit: "' + productName + '" x' + quantity);
+                    }
+                }
+            });
+
+            return products;
+        }
+
+        // Fonctions de compatibilité
+        function extractExpeditor(textContent) {
+            var fullText = textContent.items.map(function(item) { return item.str; }).join(' ');
+            return extractExpeditorFromText(fullText) || 'Inconnu';
+        }
+
+        function extractProductsFromPage(textContent) {
+            return extractProductsFromItems(textContent.items);
+        }
+
+        // Ajouter un produit (fusionner si doublon)
+        function pdfAddProduct(name, quantity, expeditor) {
+            var existing = pdfAllProducts.find(function(p) {
+                return p.name === name && p.expeditor === expeditor;
+            });
+
+            if (existing) {
+                existing.quantity += quantity;
+            } else {
+                pdfAllProducts.push({
+                    name: name,
+                    quantity: quantity,
+                    expeditor: expeditor
+                });
+            }
+
+            if (!pdfExpeditors[expeditor]) {
+                pdfExpeditors[expeditor] = {
+                    name: expeditor,
+                    products: [],
+                    totalQuantity: 0
+                };
+            }
+            pdfExpeditors[expeditor].totalQuantity += quantity;
+        }
+
+        // Analyser et afficher les données
+        function pdfAnalyzeData() {
+            // Regrouper par expéditeur
+            Object.keys(pdfExpeditors).forEach(function(key) {
+                pdfExpeditors[key].products = pdfAllProducts.filter(function(p) {
+                    return p.expeditor === key;
+                });
+                pdfExpeditors[key].totalQuantity = pdfExpeditors[key].products.reduce(function(sum, p) {
+                    return sum + p.quantity;
+                }, 0);
+            });
+
+            pdfUpdateStats();
+            pdfRenderExpeditorCards();
+            pdfRenderProductsTable();
+            pdfPopulateExpeditorFilter();
+
+            document.getElementById('pdfScannerStats').style.display = 'block';
+            document.getElementById('pdfScannerActions').style.display = 'block';
+            document.getElementById('pdfExpeditorSummary').style.display = 'block';
+            document.getElementById('pdfProductsSection').style.display = 'block';
+
+            var totalQty = pdfAllProducts.reduce(function(sum, p) { return sum + p.quantity; }, 0);
+            showToast('✅ ' + pdfAllProducts.length + ' produits (Total: ' + totalQty + ' unités)');
+        }
+
+        // Mettre à jour les stats
+        function pdfUpdateStats() {
+            var totalQty = pdfAllProducts.reduce(function(sum, p) { return sum + p.quantity; }, 0);
+            document.getElementById('pdfTotalOrders').textContent = pdfRawData.length;
+            document.getElementById('pdfTotalProducts').textContent = pdfAllProducts.length;
+            document.getElementById('pdfTotalQuantity').textContent = totalQty;
+            document.getElementById('pdfTotalAmount').textContent = Object.keys(pdfExpeditors).length;
+        }
+
+        // Afficher les cartes expéditeurs
+        function pdfRenderExpeditorCards() {
+            var container = document.getElementById('pdfExpeditorCards');
+            var html = '';
+
+            Object.keys(pdfExpeditors).forEach(function(key) {
+                var exp = pdfExpeditors[key];
+                html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white;">';
+                html += '<div style="font-size: 1.3em; font-weight: bold; margin-bottom: 15px;">📦 ' + exp.name + '</div>';
+                html += '<div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin-bottom: 10px;">';
+                html += '<div>Produits: <strong>' + exp.products.length + '</strong></div>';
+                html += '<div style="font-size: 1.2em;">Total: <strong>' + exp.totalQuantity + '</strong> unités</div>';
+                html += '</div>';
+                html += '<div style="font-size: 0.9em; max-height: 200px; overflow-y: auto;">';
+                
+                exp.products.forEach(function(p) {
+                    html += '<div style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: space-between; align-items: center;">';
+                    html += '<span style="direction: rtl; text-align: right; flex: 1;">' + p.name + '</span>';
+                    html += '<span style="background: rgba(255,255,255,0.3); padding: 3px 12px; border-radius: 12px; margin-left: 10px; font-weight: bold;">' + p.quantity + '</span>';
+                    html += '</div>';
+                });
+                
+                html += '</div></div>';
+            });
+
+            container.innerHTML = html || '<p style="color: #666;">Aucun expéditeur détecté</p>';
+        }
+
+        // Afficher le tableau des produits
+        function pdfRenderProductsTable() {
+            var tbody = document.getElementById('pdfProductsTableBody');
+            var html = '';
+
+            var sorted = pdfAllProducts.slice().sort(function(a, b) {
+                if (a.expeditor !== b.expeditor) return a.expeditor.localeCompare(b.expeditor);
+                return b.quantity - a.quantity;
+            });
+
+            sorted.forEach(function(p, i) {
+                html += '<tr style="border-bottom: 1px solid #eee;">';
+                html += '<td style="padding: 12px; text-align: center;">' + (i + 1) + '</td>';
+                html += '<td style="padding: 12px; direction: rtl; text-align: right; font-size: 1.1em;">' + p.name + '</td>';
+                html += '<td style="padding: 12px; text-align: center; font-weight: bold; font-size: 1.2em; color: #2196f3;">' + p.quantity + '</td>';
+                html += '<td style="padding: 12px; text-align: center;"><span style="background: #e3f2fd; color: #1565c0; padding: 4px 12px; border-radius: 15px;">' + p.expeditor + '</span></td>';
+                html += '</tr>';
+            });
+
+            var totalQty = pdfAllProducts.reduce(function(sum, p) { return sum + p.quantity; }, 0);
+            html += '<tr style="background: #e3f2fd; font-weight: bold;">';
+            html += '<td colspan="2" style="padding: 12px; text-align: right;">TOTAL</td>';
+            html += '<td style="padding: 12px; text-align: center; font-size: 1.3em; color: #1565c0;">' + totalQty + '</td>';
+            html += '<td></td></tr>';
+
+            tbody.innerHTML = html;
+        }
+
+        // Populer le filtre
+        function pdfPopulateExpeditorFilter() {
+            var select = document.getElementById('pdfExpeditorFilter');
+            select.innerHTML = '<option value="all">Tous les expéditeurs</option>';
+
+            Object.keys(pdfExpeditors).forEach(function(key) {
+                var exp = pdfExpeditors[key];
+                var option = document.createElement('option');
+                option.value = key;
+                option.textContent = key + ' (' + exp.products.length + ' produits, ' + exp.totalQuantity + ' unités)';
+                select.appendChild(option);
+            });
+        }
+
+        // Filtrer par expéditeur
+        function pdfFilterByExpeditor() {
+            var selected = document.getElementById('pdfExpeditorFilter').value;
+            var tbody = document.getElementById('pdfProductsTableBody');
+            var html = '';
+            
+            var toShow = selected === 'all' ? pdfAllProducts : pdfAllProducts.filter(function(p) { return p.expeditor === selected; });
+            toShow.sort(function(a, b) { return b.quantity - a.quantity; });
+
+            toShow.forEach(function(p, i) {
+                html += '<tr style="border-bottom: 1px solid #eee;">';
+                html += '<td style="padding: 12px; text-align: center;">' + (i + 1) + '</td>';
+                html += '<td style="padding: 12px; direction: rtl; text-align: right; font-size: 1.1em;">' + p.name + '</td>';
+                html += '<td style="padding: 12px; text-align: center; font-weight: bold; font-size: 1.2em; color: #2196f3;">' + p.quantity + '</td>';
+                html += '<td style="padding: 12px; text-align: center;"><span style="background: #e3f2fd; color: #1565c0; padding: 4px 12px; border-radius: 15px;">' + p.expeditor + '</span></td>';
+                html += '</tr>';
+            });
+
+            var totalQty = toShow.reduce(function(sum, p) { return sum + p.quantity; }, 0);
+            html += '<tr style="background: #e3f2fd; font-weight: bold;">';
+            html += '<td colspan="2" style="padding: 12px; text-align: right;">TOTAL</td>';
+            html += '<td style="padding: 12px; text-align: center; font-size: 1.3em; color: #1565c0;">' + totalQty + '</td>';
+            html += '<td></td></tr>';
+
+            tbody.innerHTML = html;
+        }
+
+        // Exporter Excel
+        function exportPdfDataExcel() {
+            if (pdfAllProducts.length === 0) {
+                showToast('❌ Aucune donnée');
+                return;
+            }
+
+            var wb = XLSX.utils.book_new();
+
+            // Tous les produits
+            var all = pdfAllProducts.map(function(p, i) {
+                return { '#': i + 1, 'Produit': p.name, 'Quantité': p.quantity, 'Expéditeur': p.expeditor };
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(all), 'Tous les Produits');
+
+            // Par expéditeur
+            Object.keys(pdfExpeditors).forEach(function(key) {
+                var exp = pdfExpeditors[key];
+                var data = exp.products.map(function(p, i) {
+                    return { '#': i + 1, 'Produit': p.name, 'Quantité': p.quantity };
+                });
+                data.push({ '#': '', 'Produit': 'TOTAL', 'Quantité': exp.totalQuantity });
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), key.substring(0, 31));
+            });
+
+            // Résumé
+            var summary = Object.keys(pdfExpeditors).map(function(key) {
+                var e = pdfExpeditors[key];
+                return { 'Expéditeur': e.name, 'Nb Produits': e.products.length, 'Quantité Totale': e.totalQuantity };
+            });
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Résumé');
+
+            XLSX.writeFile(wb, 'extraction_pdf_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+            showToast('✅ Excel exporté !');
+        }
+
+        // Réinitialiser
+        function resetPdfScanner() {
+            pdfAllProducts = [];
+            pdfExpeditors = {};
+            pdfRawData = [];
+            
+            document.getElementById('pdfScannerFileInput').value = '';
+            document.getElementById('pdfScannerFileInfo').style.display = 'none';
+            document.getElementById('pdfScannerStats').style.display = 'none';
+            document.getElementById('pdfScannerActions').style.display = 'none';
+            document.getElementById('pdfExpeditorSummary').style.display = 'none';
+            document.getElementById('pdfProductsSection').style.display = 'none';
+            
+            showToast('🔄 Réinitialisé');
+        }
+
+        // ========== FIN PDF SCANNER ==========
 
 </script>
 </body>
