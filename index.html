@@ -2179,16 +2179,29 @@
         function extractProductsFromMessage(messageText) {
             const products = [];
             const lines = messageText.split('\n');
-            const productRegex = /(\d+(?:\.\d+)?)\s+(.+?)\s+×\s+(\d+(?:\.\d+)?)\s+=\s+(\d+(?:\.\d+)?)Dh/;
+            const productRegexWithPrice = /(\d+(?:\.\d+)?)\s+(.+?)\s+×\s+(\d+(?:\.\d+)?)\s+=\s+(\d+(?:\.\d+)?)Dh/;
+            const productRegexNoPrice = /^(\d+(?:\.\d+)?)\s+(.+)$/;
             
             for (const line of lines) {
-                const match = line.match(productRegex);
-                if (match) {
+                const matchWithPrice = line.match(productRegexWithPrice);
+                if (matchWithPrice) {
                     products.push({
-                        quantity: parseFloat(match[1]),
-                        name: match[2].trim(),
-                        price: parseFloat(match[3]),
-                        total: parseFloat(match[4])
+                        quantity: parseFloat(matchWithPrice[1]),
+                        name: matchWithPrice[2].trim(),
+                        price: parseFloat(matchWithPrice[3]),
+                        total: parseFloat(matchWithPrice[4])
+                    });
+                    continue;
+                }
+                
+                // Format sans prix (produit gratuit) : "49 PREMIUM POSTURE CORRECTOR"
+                const matchNoPrice = line.match(productRegexNoPrice);
+                if (matchNoPrice && !line.includes('Total') && !line.includes('TOTAL')) {
+                    products.push({
+                        quantity: parseFloat(matchNoPrice[1]),
+                        name: matchNoPrice[2].trim(),
+                        price: 0,
+                        total: 0
                     });
                 }
             }
